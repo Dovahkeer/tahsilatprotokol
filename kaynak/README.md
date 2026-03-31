@@ -37,28 +37,6 @@ Varsayılan değerler:
 - E-posta: `admin@example.com`
 - Şifre: `password`
 
-### Seed Kullanici Hesaplari
-
-Varsayilan operasyon hesaplari:
-
-- `sumervarlik@local.test`
-- `emirvarlik@local.test`
-- `gelecekvarlik@local.test`
-- `dogruvarlik@local.test`
-- `birlesimvarlik@local.test`
-- `birikimvarlik@local.test`
-- `dengevarlik@local.test`
-- `gsdvarlik@local.test`
-
-Bu hesaplar icin sifre: `tahsilat`
-
-Admin hesaplar:
-
-- `toprak@local.test`
-- `ademkaratepe@local.test`
-
-Admin sifresi: `032e1ae5`
-
 ### Kurulum
 
 1. `docker compose up -d`
