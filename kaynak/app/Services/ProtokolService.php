@@ -34,6 +34,10 @@ class ProtokolService
             ->when(! empty($filters['protokol_no']), fn ($q) => $q->where('protokol_no', 'like', '%'.$filters['protokol_no'].'%'))
             ->when(! empty($filters['muvekkil_ids']), fn ($q) => $q->whereIn('muvekkil_id', $filters['muvekkil_ids']))
             ->when(! empty($filters['portfoy_id']), fn ($q) => $q->where('portfoy_id', $filters['portfoy_id']))
+            // YENİ EKLENEN TARİH FİLTRELERİ BURADA
+            ->when(! empty($filters['baslangic_tarihi']), fn ($q) => $q->whereDate('protokol_tarihi', '>=', $filters['baslangic_tarihi']))
+            ->when(! empty($filters['bitis_tarihi']), fn ($q) => $q->whereDate('protokol_tarihi', '<=', $filters['bitis_tarihi']))
+            // AKTİF/PASİF FİLTRESİ DEVAM EDİYOR
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'aktif', fn ($q) => $q->where('aktif', true))
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'pasif', fn ($q) => $q->where('aktif', false));
 

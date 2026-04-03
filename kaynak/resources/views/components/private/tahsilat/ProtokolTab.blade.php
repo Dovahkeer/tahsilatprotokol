@@ -24,7 +24,7 @@
         @endphp
 
         <div class="pb-1 relative">
-            <div class="w-full flex items-center gap-1.5">
+            <div class="w-full flex flex-wrap items-center gap-2">
                 <div class="relative w-[130px]">
                     <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55a1 1 0 010 1.4L15 16m-6 0l-4.55-4.6a1 1 0 010-1.4L9 10"/>
@@ -86,57 +86,35 @@
                     </select>
                 </div>
 
-                <div class="relative w-[130px]">
-                    <input type="month"
-                        x-model="filtre.ay"
-                        @change="yukle(1)"
-                        class="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200">
+                <div class="flex items-center gap-1 shrink-0 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-0.5 h-9">
+                    <input type="date" x-model="filtre.baslangic_tarihi" @change="yukle(1)" title="Başlangıç Tarihi"
+                        class="h-full px-2 bg-transparent border-0 text-xs text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer">
+                    <span class="text-gray-400 text-xs font-bold">-</span>
+                    <input type="date" x-model="filtre.bitis_tarihi" @change="yukle(1)" title="Bitiş Tarihi"
+                        class="h-full px-2 bg-transparent border-0 text-xs text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer">
                 </div>
 
-                <div class="inline-flex h-9 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-700">
+                <div class="inline-flex h-9 shrink-0 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-700">
                     <button type="button" @click="aktifDurumuSec('aktif')"
                         :class="filtre.aktif_durumu === 'aktif' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'"
-                        class="px-2.5 text-xs font-medium inline-flex items-center gap-1 border-r border-gray-200 dark:border-gray-600 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
+                        class="px-3 text-xs font-medium inline-flex items-center gap-1 border-r border-gray-200 dark:border-gray-600 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Aktif
                     </button>
                     <button type="button" @click="aktifDurumuSec('pasif')"
                         :class="filtre.aktif_durumu === 'pasif' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'"
-                        class="px-2.5 text-xs font-medium inline-flex items-center gap-1 border-r border-gray-200 dark:border-gray-600 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
+                        class="px-3 text-xs font-medium inline-flex items-center gap-1 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         Pasif
-                    </button>
-                    <button type="button" @click="aktifDurumuSec('tum')"
-                        :class="filtre.aktif_durumu === 'tum' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'"
-                        class="px-2.5 text-xs font-medium inline-flex items-center gap-1 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                        Tümü
                     </button>
                 </div>
 
-                <div class="inline-flex h-9 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-700">
-                    <button type="button" @click="siralamaSec('protokol_tarihi_desc')"
-                        :class="filtre.siralama === 'protokol_tarihi_desc' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'"
-                        class="px-2.5 text-xs font-medium inline-flex items-center gap-1 border-r border-gray-200 dark:border-gray-600 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10"/>
-                        </svg>
-                        Tarih
-                    </button>
-                    <button type="button" @click="siralamaSec('aylik_tutar_desc')"
-                        :class="filtre.siralama === 'aylik_tutar_desc' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'"
-                        class="px-2.5 text-xs font-medium inline-flex items-center gap-1 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l4-4 4 4m0-10v10"/>
-                        </svg>
-                        Miktar
-                    </button>
+                <div class="relative w-[130px] shrink-0">
+                    <select x-model="filtre.siralama" @change="yukle(1)"
+                        class="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-500/40">
+                        <option value="protokol_tarihi_desc">Tarihe Göre</option>
+                        <option value="aylik_tutar_desc">Miktara Göre</option>
+                    </select>
                 </div>
 
                 <div class="ml-auto flex items-center gap-1.5">
@@ -410,7 +388,8 @@ function protokolTab() {
             protokol_no: '',
             muvekkil_ids: [],
             portfoy_id: '',
-            ay: '',
+            baslangic_tarihi: '',
+            bitis_tarihi: '',
             aktif_durumu: 'aktif',
             siralama: 'protokol_tarihi_desc',
         },
@@ -430,7 +409,8 @@ function protokolTab() {
                 }
             }
             if (this.filtre.portfoy_id) params.set('portfoy_id', this.filtre.portfoy_id);
-            if (this.filtre.ay) params.set('ay', this.filtre.ay);
+            if (this.filtre.baslangic_tarihi) params.set('baslangic_tarihi', this.filtre.baslangic_tarihi);
+            if (this.filtre.bitis_tarihi) params.set('bitis_tarihi', this.filtre.bitis_tarihi);
             if (this.filtre.aktif_durumu) params.set('aktif_durumu', this.filtre.aktif_durumu);
             if (this.filtre.siralama) params.set('siralama', this.filtre.siralama);
 
@@ -581,7 +561,8 @@ function protokolTab() {
                 protokol_no: '',
                 muvekkil_ids: [],
                 portfoy_id: '',
-                ay: '',
+                baslangic_tarihi: '',
+                bitis_tarihi: '',
                 aktif_durumu: 'aktif',
                 siralama: 'protokol_tarihi_desc',
             };
