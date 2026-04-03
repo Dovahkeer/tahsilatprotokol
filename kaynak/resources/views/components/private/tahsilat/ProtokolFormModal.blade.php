@@ -125,6 +125,29 @@
                     </div>
                 </div>
 
+                {{-- Ana Para --}}
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ana Para (TL)</label>
+                    <input type="text"
+                        x-model="form.ana_para"
+                        @input="form.ana_para = formatAmountInput($event.target.value)"
+                        inputmode="decimal"
+                        placeholder="Örn: 1.000.000,00"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500">
+                </div>
+
+                {{-- Kapak Hesabı --}}
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Kapak Hesabı (TL)</label>
+                    <input type="text"
+                        x-model="form.kapak_hesabi"
+                        @input="form.kapak_hesabi = formatAmountInput($event.target.value)"
+                        inputmode="decimal"
+                        placeholder="Örn: 1.200.000,00"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500">
+                </div>
+
+
                 {{-- Toplam Tutar --}}
                 <div>
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Toplam Protokol Tutarı (TL) <span class="text-red-500">*</span></label>
@@ -160,14 +183,15 @@
                 </div>
                 <div class="space-y-2">
                     <template x-for="(h, i) in form.hacizciler" :key="i">
-                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 p-2 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
                             <select x-model="h.hacizci_id" required
                                 class="flex-1 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
                                 <option value="">- Hacizci Seçin -</option>
                                 <template x-for="hc in hacizciler" :key="hc.id">
-                                    <option :value="hc.id" x-text="hc.ad_soyad + (hc.sicil_no ? ' (' + hc.sicil_no + ')' : '')"></option>
+                                    <option :value="String(hc.id)" x-text="hc.ad_soyad + (hc.sicil_no ? ' (' + hc.sicil_no + ')' : '')"></option>
                                 </template>
                             </select>
+
                             <select x-model="h.haciz_turu" required
                                 class="w-36 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
                                 <option value="">- Haciz Türü -</option>
@@ -176,17 +200,12 @@
                                 <option value="97">97</option>
                                 <option value="ihtiyati">İhtiyati</option>
                             </select>
+
                             <input type="number" x-model="h.pay_orani"
                                 :required="manuelPayZorunlu()"
                                 :disabled="!manuelPayZorunlu()"
                                 min="0" max="100" step="0.01" placeholder="Pay %"
                                 class="w-24 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs disabled:opacity-50">
-                            <button type="button" @click="form.hacizciler.splice(i, 1)"
-                                class="text-red-400 hover:text-red-600 flex-shrink-0">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
                         </div>
                     </template>
                     <p x-show="form.hacizciler.length === 0" class="text-xs text-gray-400 text-center py-2">
@@ -281,6 +300,8 @@ function protokolFormModal() {
             muhatap_telefon: '',
             pesinat: '',
             toplam_protokol_tutari: '',
+            ana_para: '',
+            kapak_hesabi: '',
             taksitler: [],
             hacizciler: [],
             pdf_dosya: null,
@@ -333,6 +354,8 @@ function protokolFormModal() {
                 muhatap_telefon: '',
                 pesinat: '',
                 toplam_protokol_tutari: '',
+                ana_para: '',
+                kapak_hesabi: '',
                 taksitler: [],
                 hacizciler: [],
                 pdf_dosya: null,
@@ -373,6 +396,33 @@ function protokolFormModal() {
                 const protokol = await res.json();
                 const seciliPortfoyId = protokol.portfoy_id ?? '';
 
+                const seciliHacizciler = Array.isArray(protokol.hacizciler) ? protokol.hacizciler : [];
+                for (const h of seciliHacizciler) {
+                    if (!h?.id) {
+                        continue;
+                    }
+
+                    const varMi = this.hacizciler.some((hc) => String(hc.id) === String(h.id));
+                    if (!varMi) {
+                        this.hacizciler.push({
+                            id: String(h.id),
+                            ad_soyad: h.ad_soyad ?? ('Hacizci ' + String(h.id).slice(0, 8)),
+                            sicil_no: h.sicil_no ?? null,
+                            kademe: h.kademe ?? null,
+                        });
+                    }
+                }
+
+                // HİLE BAŞLIYOR: Alpine'i kandırmak için ID'leri başta boş gönderiyoruz
+                const doldurulacakHacizciler = Array.isArray(protokol.hacizciler)
+                    ? protokol.hacizciler.map((h) => ({
+                        hacizci_id: '', // Bilerek boş bırakıyoruz ki seçenekler çizilmeden hata vermesin
+                        _gercek_id: String(h.id), // Asıl ID'yi kenara gizlice not alıyoruz
+                        haciz_turu: this.normalizeHacizTuru(h?.pivot?.haciz_turu ?? ''),
+                        pay_orani: h?.pivot?.pay_orani ?? '',
+                    }))
+                    : [];
+
                 this.form = {
                     muvekkil_id: protokol.muvekkil_id ?? '',
                     portfoy_id: seciliPortfoyId,
@@ -384,6 +434,8 @@ function protokolFormModal() {
                     muhatap_telefon: protokol.muhatap_telefon ?? '',
                     pesinat: this.formatAmountFromNumber(protokol.pesinat ?? ''),
                     toplam_protokol_tutari: this.formatAmountFromNumber(protokol.toplam_protokol_tutari ?? ''),
+                    ana_para: this.formatAmountFromNumber(protokol.ana_para ?? ''),
+                    kapak_hesabi: this.formatAmountFromNumber(protokol.kapak_hesabi ?? ''),
                     taksitler: Array.isArray(protokol.taksitler)
                         ? protokol.taksitler.map((t) => ({
                             id: t.id,
@@ -392,34 +444,17 @@ function protokolFormModal() {
                             odendi: !!t.odendi,
                         }))
                         : [],
-                    hacizciler: Array.isArray(protokol.hacizciler)
-                        ? protokol.hacizciler.map((h) => ({
-                            hacizci_id: h.id,
-                            haciz_turu: this.normalizeHacizTuru(h?.pivot?.haciz_turu ?? ''),
-                            pay_orani: h?.pivot?.pay_orani ?? '',
-                        }))
-                        : [],
+                    hacizciler: doldurulacakHacizciler,
                     pdf_dosya: null,
                 };
 
-                const seciliHacizciler = Array.isArray(protokol.hacizciler) ? protokol.hacizciler : [];
-                for (const h of seciliHacizciler) {
-                    if (!h?.id) {
-                        continue;
-                    }
-
-                    const varMi = this.hacizciler.some((hc) => hc.id === h.id);
-                    if (varMi) {
-                        continue;
-                    }
-
-                    this.hacizciler.push({
-                        id: h.id,
-                        ad_soyad: h.ad_soyad ?? ('Hacizci ' + String(h.id).slice(0, 8)),
-                        sicil_no: h.sicil_no ?? null,
-                        kademe: h.kademe ?? null,
+                // HTML TAMAMEN ÇİZİLDİ, <option> etiketleri yerine oturdu!
+                // Şimdi kenara not aldığımız asıl ID'leri kutulara 1 milisaniye sonra yerleştiriyoruz!
+                this.$nextTick(() => {
+                    this.form.hacizciler.forEach(h => {
+                        h.hacizci_id = h._gercek_id;
                     });
-                }
+                });
 
                 if (this.form.muvekkil_id) {
                     await this.muvekkilDegisti(true);
@@ -571,6 +606,8 @@ function protokolFormModal() {
                     muhatap_telefon: this.form.muhatap_telefon || null,
                     pesinat: normalizedPesinat,
                     toplam_protokol_tutari: normalizedToplamProtokolTutari,
+                    ana_para: this.toBackendAmount(this.form.ana_para),
+                    kapak_hesabi: this.toBackendAmount(this.form.kapak_hesabi),
                     hacizciler: this.form.hacizciler.map((h) => ({
                         hacizci_id: h.hacizci_id,
                         haciz_turu: h.haciz_turu,
@@ -770,5 +807,3 @@ function protokolFormModal() {
     };
 }
 </script>
-
-

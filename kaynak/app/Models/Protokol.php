@@ -24,6 +24,8 @@ class Protokol extends Model
             'pesinat' => 'decimal:2',
             'toplam_protokol_tutari' => 'decimal:2',
             'aktif' => 'boolean',
+            'ana_para' => 'decimal:2',        // Yeni ekledik
+            'kapak_hesabi' => 'decimal:2',    // Yeni ekledik
         ];
     }
 

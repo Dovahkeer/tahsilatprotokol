@@ -204,6 +204,7 @@
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Portföy</th>
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Borçlu</th>
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">TCKN/VKN</th>
+                    <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Hacizciler</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Peşinat</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Kalan Taksit</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Bu Ay Vadesi Geçmiş</th>
@@ -220,6 +221,10 @@
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.portfoy?.ad ?? '-'"></td>
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.borclu_adi"></td>
                         <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 font-mono" x-text="p.borclu_tckn_vkn ?? '-'"></td>
+                        {{-- YENİ EKLENEN SATIR BURASI --}}
+                        <td class="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-400 whitespace-normal min-w-[200px] max-w-[250px] leading-relaxed" 
+                            x-text="p.hacizciler && p.hacizciler.length > 0 ? p.hacizciler.map(h => h.ad_soyad).join(', ') : '-'">
+                        </td>
                         <td class="px-3 py-2.5 text-sm text-right" x-text="formatPara(p.pesinat)"></td>
                         <td class="px-3 py-2.5 text-sm font-medium text-right">
                             <button @click="taksitDetayAc(p)"
@@ -303,9 +308,12 @@
     </div>
 
     {{-- Taksit Detay Modalı --}}
-    <div x-show="taksitModal.acik" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" x-cloak>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6" @click.stop @click.outside="taksitModal.acik = false">
-            <div class="flex items-center justify-between mb-4">
+    <template x-teleport="body">
+    <div x-show="taksitModal.acik" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-sm"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div class="relative w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl" @click.stop @click.outside="taksitModal.acik = false">
+            <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <h3 class="text-base font-bold text-gray-900 dark:text-white"
                     x-text="'Taksit Planı - ' + (taksitModal.protokol?.protokol_no ?? '')"></h3>
                 <button @click="taksitModal.acik = false" class="text-gray-400 hover:text-gray-600">
@@ -314,7 +322,7 @@
                     </svg>
                 </button>
             </div>
-            <div class="space-y-2 max-h-80 overflow-y-auto">
+            <div class="space-y-2 max-h-80 overflow-y-auto p-6">
                 <template x-for="t in (taksitModal.protokol?.taksitler ?? [])" :key="t.id">
                     <div class="flex items-center justify-between px-3 py-2 rounded-lg"
                         :class="t.odendi ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/40'">
@@ -334,12 +342,17 @@
                 </template>
             </div>
         </div>
+        </div>
     </div>
+    </template>
 
     {{-- PDF Görüntüleme Modalı --}}
-    <div x-show="pdfModal.acik" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" x-cloak>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col" @click.stop @click.outside="pdfModal.acik = false">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+    <template x-teleport="body">
+    <div x-show="pdfModal.acik" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-sm"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div class="relative flex h-[85vh] max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800 sm:max-h-[calc(100vh-3rem)]" @click.stop @click.outside="pdfModal.acik = false">
+            <div class="flex items-center justify-between border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                 <h3 class="text-base font-bold text-gray-900 dark:text-white"
                     x-text="'Protokol PDF - ' + (pdfModal.protokol?.protokol_no ?? '')"></h3>
                 <button @click="pdfModal.acik = false" class="text-gray-400 hover:text-gray-600">
@@ -352,12 +365,16 @@
                 <iframe x-show="pdfModal.acik" :src="pdfModal.url" class="w-full h-full rounded border border-gray-200 dark:border-gray-700"></iframe>
             </div>
         </div>
+        </div>
     </div>
+    </template>
 
     {{-- Yeni Protokol Form Modalı --}}
     @include('components.private.tahsilat.ProtokolFormModal')
     @if($topluProtokolYetkiVar)
+    <template x-teleport="body">
     @include('components.private.tahsilat.TopluProtokolModal')
+    </template>
     @endif
 
 </div>
@@ -640,6 +657,7 @@ function protokolTab() {
     };
 }
 </script>
+
 
 
 

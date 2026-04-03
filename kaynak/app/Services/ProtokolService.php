@@ -105,6 +105,8 @@ class ProtokolService
                 'muhatap_telefon' => $data['muhatap_telefon'] ?? null,
                 'pesinat' => $pesinat,
                 'toplam_protokol_tutari' => $toplam,
+                'ana_para' => isset($data['ana_para']) ? Money::normalize($data['ana_para']) : null, // EKLE
+                'kapak_hesabi' => isset($data['kapak_hesabi']) ? Money::normalize($data['kapak_hesabi']) : null, // EKLE
                 'aktif' => true,
                 'created_by' => $user->id,
                 'updated_by' => $user->id,
@@ -151,6 +153,8 @@ class ProtokolService
                 'muhatap_telefon' => $data['muhatap_telefon'] ?? null,
                 'pesinat' => $pesinat,
                 'toplam_protokol_tutari' => $toplam,
+                'ana_para' => isset($data['ana_para']) ? Money::normalize($data['ana_para']) : null, // EKLE
+                'kapak_hesabi' => isset($data['kapak_hesabi']) ? Money::normalize($data['kapak_hesabi']) : null, // EKLE
                 'aktif' => array_key_exists('aktif', $data) ? (bool) $data['aktif'] : $protokol->aktif,
                 'updated_by' => $user->id,
             ]);
@@ -242,6 +246,8 @@ class ProtokolService
             'pesinat' => Money::float($protokol->pesinat),
             'pesinat_kalan' => Money::float($pesinatKalan),
             'toplam_protokol_tutari' => Money::float($protokol->toplam_protokol_tutari),
+            'ana_para' => $protokol->ana_para ? Money::float($protokol->ana_para) : null, // EKLE
+            'kapak_hesabi' => $protokol->kapak_hesabi ? Money::float($protokol->kapak_hesabi) : null, // EKLE
             'aktif' => (bool) $protokol->aktif,
             'protokol_pdf_dosya_yolu' => $protokol->protokol_pdf_dosya_yolu,
             'muvekkil' => $protokol->muvekkil ? [

@@ -204,6 +204,7 @@
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Portföy</th>
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Borçlu</th>
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">TCKN/VKN</th>
+                    <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Hacizciler</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Peşinat</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Kalan Taksit</th>
                     <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Bu Ay Vadesi Geçmiş</th>
@@ -220,6 +221,10 @@
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.portfoy?.ad ?? '-'"></td>
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.borclu_adi"></td>
                         <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 font-mono" x-text="p.borclu_tckn_vkn ?? '-'"></td>
+                        {{-- YENİ EKLENEN SATIR BURASI --}}
+                        <td class="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-400 whitespace-normal min-w-[200px] max-w-[250px] leading-relaxed" 
+                            x-text="p.hacizciler && p.hacizciler.length > 0 ? p.hacizciler.map(h => h.ad_soyad).join(', ') : '-'">
+                        </td>
                         <td class="px-3 py-2.5 text-sm text-right" x-text="formatPara(p.pesinat)"></td>
                         <td class="px-3 py-2.5 text-sm font-medium text-right">
                             <button @click="taksitDetayAc(p)"
