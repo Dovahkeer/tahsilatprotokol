@@ -178,7 +178,7 @@
                         class="text-xs text-amber-600 hover:text-amber-700 font-medium">+ Hacizci Ekle</button>
                 </div>
                 <div x-show="manuelPayZorunlu()" class="mb-2 px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-700 dark:text-amber-300">
-                    3 hacizci seçildiği için manuel pay oranları zorunludur. Toplam:
+                    Pay oranlarını manuel olarak giriniz. Toplam oran 100 olmalıdır. Şu anki Toplam:
                     <span class="font-semibold" x-text="oranToplami().toFixed(2) + '%' "></span>
                 </div>
                 <div class="space-y-2">
@@ -199,7 +199,7 @@
                                 <option value="nami_mustear">Namı Müstear</option>
                                 <option value="97">97</option>
                                 <option value="ihtiyati">İhtiyati</option>
-                                <option value="ihtiyati">Sulhen</option>
+                                <option value="sulhen">Sulhen</option>
                             </select>
 
                             <input type="number" x-model="h.pay_orani"
@@ -207,6 +207,14 @@
                                 :disabled="!manuelPayZorunlu()"
                                 min="0" max="100" step="0.01" placeholder="Pay %"
                                 class="w-24 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs disabled:opacity-50">
+
+                                {{-- YENİ EKLENEN SİLME BUTONU --}}
+                            <button type="button" @click="form.hacizciler.splice(i, 1)"
+                                class="text-red-400 hover:text-red-600 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
                         </div>
                     </template>
                     <p x-show="form.hacizciler.length === 0" class="text-xs text-gray-400 text-center py-2">
