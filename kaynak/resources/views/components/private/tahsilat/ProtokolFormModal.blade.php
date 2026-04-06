@@ -606,8 +606,8 @@ function protokolFormModal() {
                     muhatap_telefon: this.form.muhatap_telefon || null,
                     pesinat: normalizedPesinat,
                     toplam_protokol_tutari: normalizedToplamProtokolTutari,
-                    ana_para: this.toBackendAmount(this.form.ana_para),
-                    kapak_hesabi: this.toBackendAmount(this.form.kapak_hesabi),
+                    ana_para: this.form.ana_para ? this.toBackendAmount(this.form.ana_para) : null,
+                    kapak_hesabi: this.form.kapak_hesabi ? this.toBackendAmount(this.form.kapak_hesabi) : null,
                     hacizciler: this.form.hacizciler.map((h) => ({
                         hacizci_id: h.hacizci_id,
                         haciz_turu: h.haciz_turu,

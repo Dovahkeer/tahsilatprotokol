@@ -31,6 +31,8 @@ class UpdateProtokolRequest extends FormRequest
             'muhatap_telefon' => ['nullable', 'string', 'max:30'],
             'pesinat' => ['required', 'regex:/^\d+(\.\d{2})?$/'],
             'toplam_protokol_tutari' => ['required', 'regex:/^\d+(\.\d{2})?$/'],
+            'ana_para' => ['nullable', 'numeric', 'min:0'],
+            'kapak_hesabi' => ['nullable', 'numeric', 'min:0'],
             'aktif' => ['sometimes', 'boolean'],
             'hacizciler' => ['required', 'array', 'min:1'],
             'hacizciler.*.hacizci_id' => ['required', 'distinct', 'exists:hacizciler,id'],

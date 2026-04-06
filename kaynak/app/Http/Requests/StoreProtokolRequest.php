@@ -26,6 +26,8 @@ class StoreProtokolRequest extends FormRequest
             'muhatap_telefon' => ['required', 'string', 'max:30'],
             'pesinat' => ['required', 'regex:/^\d+(\.\d{2})?$/'],
             'toplam_protokol_tutari' => ['required', 'regex:/^\d+(\.\d{2})?$/'],
+            'ana_para' => ['nullable', 'string'],
+            'kapak_hesabi' => ['nullable', 'string'],
             'hacizciler' => ['required', 'array', 'min:1'],
             'hacizciler.*.hacizci_id' => ['required', 'distinct', 'exists:hacizciler,id'],
             'hacizciler.*.haciz_turu' => ['required', Rule::in(array_keys(config('tahsilat.haciz_turleri', [])))],
