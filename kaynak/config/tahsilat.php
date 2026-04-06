@@ -11,6 +11,11 @@ return [
         'muvekkil_hesabina_eft_havale' => 'Müvekkil hesabına EFT / havale',
         'vekil_hesabina_eft_havale' => 'Vekil hesabına EFT / havale',
         'elden_alindi' => 'Elden alındı',
+        // YENİ EKLENEN VEKALET ÜCRETİ SEÇENEKLERİ
+        'vekalet_ucreti_vekil_hesabina_eft_havale' => 'Vekalet ücreti vekil hesabına EFT / havale',
+        'vekalet_ucreti_reddiyat' => 'Vekalet ücreti reddiyat',
+        'vekalet_ucreti_mail_order' => 'Vekalet ücreti mail order',
+        'vekalet_ucreti_elden_alindi' => 'Vekalet ücreti elden alındı',
     ],
 
     'tahsilat_birimleri' => [
@@ -29,6 +34,7 @@ return [
         'nami_mustear' => 'Namı müstear',
         '97' => '97',
         'ihtiyati' => 'İhtiyati',
+        'sulhen' => 'Sulhen',
     ],
 
     'tab_tanimlari' => [
