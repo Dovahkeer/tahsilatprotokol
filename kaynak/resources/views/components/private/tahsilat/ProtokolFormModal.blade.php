@@ -714,6 +714,7 @@ function protokolFormModal() {
             if (normalized === 'nami_mustear') return 'nami_mustear';
             if (normalized === '97') return '97';
             if (normalized === 'ihtiyati') return 'ihtiyati';
+            if (normalized === 'sulhen') return 'sulhen'; // <-- İŞTE BU SATIRI EKLE
             return '';
         },
 
