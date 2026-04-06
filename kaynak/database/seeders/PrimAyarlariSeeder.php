@@ -43,7 +43,7 @@ class PrimAyarlariSeeder extends Seeder
                 ],
             );
 
-            for ($asama = 1; $asama <= 1; $asama++) {
+            for ($asama = 1; $asama <= 3; $asama++) {
                 PrimKademeAsamasi::updateOrCreate(
                     [
                         'kademe' => $kademe['kademe'],
