@@ -8,5 +8,5 @@ enum HacizTuru: string
     case NamiMustear = 'nami_mustear';
     case DoksanYedi = '97';
     case Ihtiyati = 'ihtiyati';
-    case Sulhen = 'Sulhen';
+    case Sulhen = 'sulhen';
 }
