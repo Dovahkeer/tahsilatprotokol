@@ -681,7 +681,7 @@ function protokolFormModal() {
         },
 
         manuelPayZorunlu() {
-            return this.form.hacizciler.length === 1;
+            return this.form.hacizciler.length >= 1;
         },
 
         parseOran(value) {
