@@ -199,6 +199,7 @@
                                 <option value="nami_mustear">Namı Müstear</option>
                                 <option value="97">97</option>
                                 <option value="ihtiyati">İhtiyati</option>
+                                <option value="ihtiyati">Sulhen</option>
                             </select>
 
                             <input type="number" x-model="h.pay_orani"
