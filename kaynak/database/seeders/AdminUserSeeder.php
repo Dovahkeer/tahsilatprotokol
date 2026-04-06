@@ -113,6 +113,13 @@ class AdminUserSeeder extends Seeder
                 'is_admin' => true,
                 'legacy_emails' => ['adamkaratepe@local.test'],
             ],
+            [
+                'name' => 'admin',
+                'email' => 'admin@local.test',
+                'password' => 'admin4434',
+                'is_admin' => true,
+                'legacy_emails' => ['admin@local.test'],
+            ],
         ];
     }
 }
