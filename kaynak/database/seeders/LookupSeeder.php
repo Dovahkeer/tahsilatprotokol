@@ -178,6 +178,7 @@ class LookupSeeder extends Seeder
             'NURULLAH YILDIRIM',
             'MEHMET ÇAĞRI ERSEKMEN',
             'AHMET KARAGÖZ',
+            'OFİS',
         ];
     }
 
