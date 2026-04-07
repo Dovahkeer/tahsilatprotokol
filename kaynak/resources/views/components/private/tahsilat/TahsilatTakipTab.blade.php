@@ -133,14 +133,14 @@
                 <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex gap-2">
                         <template x-for="dekont in (tahsilat.dekontlar ?? [])" :key="dekont.id">
-                            <a :href="'/tahsilat/dekont/' + dekont.id + '/view'" target="_blank"
-                                class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs hover:bg-blue-100 transition-colors">
+                            <button type="button" @click="dekontGoruntule(dekont, tahsilat)"
+                                class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium hover:bg-blue-100 transition-colors">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                                 Dekont
-                            </a>
+                            </button>
                         </template>
                     </div>
 
@@ -189,6 +189,32 @@
     {{-- Yeni Tahsilat Modalı --}}
     @include('components.private.tahsilat.TahsilatFormModal')
 
+    {{-- Dekont Görüntüleme Modalı --}}
+    <template x-teleport="body">
+    <div x-show="dekontModal.acik" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm" @click="dekontModal.acik = false"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4">
+            <div class="relative w-full max-w-4xl h-[85vh] flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" @click.stop>
+                
+                {{-- Başlık Kısmı --}}
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white truncate pr-4" x-text="dekontModal.baslik"></h3>
+                    <button @click="dekontModal.acik = false" class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                {{-- İçerik (Iframe) --}}
+                <div class="flex-1 w-full h-full bg-gray-100 dark:bg-gray-950">
+                    <iframe x-show="dekontModal.acik" :src="dekontModal.url" class="w-full h-full border-0"></iframe>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    </template>
+
+
     {{-- Red Nedeni Modalı --}}
     <template x-teleport="body">
     <div x-show="redModal.acik" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
@@ -224,6 +250,7 @@ function tahsilatTakipTab() {
         yoneticiMi: @js((bool) auth()->user()->isYonetici()),
         filtre: { onay_durumu: '' },
         redModal: { acik: false, tahsilat: null, neden: '' },
+        dekontModal: { acik: false, url: '', baslik: '' }, // YENİ EKLENEN KİLİT DEĞİŞKEN
         tahsilatModal: false,
 
         get toplamKayitSayisi() {
@@ -294,6 +321,12 @@ function tahsilatTakipTab() {
 
         redModalAc(tahsilat) {
             this.redModal = { acik: true, tahsilat, neden: '' };
+        },
+
+        dekontGoruntule(dekont, tahsilat) {
+            this.dekontModal.url = '/tahsilat/dekont/' + dekont.id + '/view';
+            this.dekontModal.baslik = 'Dekont - ' + (tahsilat.borclu_adi || 'Bilinmiyor');
+            this.dekontModal.acik = true;
         },
 
         async tahsilatReddet() {

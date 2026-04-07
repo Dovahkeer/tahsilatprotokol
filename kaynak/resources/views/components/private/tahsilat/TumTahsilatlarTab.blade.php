@@ -93,6 +93,7 @@
                     <th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Borçlu</th>
                     <th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Yöntem</th>
                     <th class="px-3 py-2 text-right text-[11px] font-semibold text-gray-500 uppercase">Tutar</th>
+                    <th class="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase">Dekont</th>
                     <th class="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase">Durum</th>
                     <th class="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase">İşlem</th>
                 </tr>
@@ -121,16 +122,32 @@
                         </td>
                         <td class="px-3 py-2 align-top text-gray-700 dark:text-gray-300" x-text="formatYontem(tahsilat.tahsilat_yontemi)"></td>
                         <td class="px-3 py-2 align-top text-right font-semibold text-gray-900 dark:text-white" x-text="formatPara(tahsilat.tutar)"></td>
+                        {{-- DEKONT SÜTUNU (Buraya taşıdık) --}}
+                        <td class="px-3 py-2 align-top text-center">
+                            <div class="inline-flex items-center justify-center gap-1">
+                                <template x-for="dekont in (tahsilat.dekontlar ?? [])" :key="dekont.id">
+                                    <button type="button" @click="dekontGoruntule(dekont, tahsilat)"
+                                        class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded text-[11px] font-medium hover:bg-blue-100 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        Dekont
+                                    </button>
+                                </template>
+                            </div>
+                        </td>
                         <td class="px-3 py-2 align-top text-center">
                             <span :class="durumSinif(tahsilat.onay_durumu)" class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium" x-text="formatDurum(tahsilat.onay_durumu)"></span>
                         </td>
                         <td class="px-3 py-2 align-top text-center">
                             <div class="inline-flex items-center justify-center gap-1">
                                 <button x-show="onayYetkisiVar && tahsilat.onay_durumu === 'beklemede'"
-                                    @click="tahsilatOnayla(tahsilat)"
+                                    @click.prevent.stop="tahsilatOnayla(tahsilat, $event)"
                                     class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-[11px] font-medium transition-colors">
                                     Onayla
                                 </button>
+                                
                                 <button x-show="onayYetkisiVar && tahsilat.onay_durumu === 'beklemede'"
                                     @click="redModalAc(tahsilat)"
                                     class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-[11px] font-medium transition-colors">
@@ -186,16 +203,38 @@
         </div>
     </div>
     </template>
+    {{-- Dekont Görüntüleme Modalı --}}
+    <template x-teleport="body">
+    <div x-show="dekontModal.acik" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm" @click="dekontModal.acik = false"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4">
+            <div class="relative w-full max-w-4xl h-[85vh] flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" @click.stop>
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white truncate pr-4" x-text="dekontModal.baslik"></h3>
+                    <button @click="dekontModal.acik = false" class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="flex-1 w-full h-full bg-gray-100 dark:bg-gray-950">
+                    <iframe x-show="dekontModal.acik" :src="dekontModal.url" class="w-full h-full border-0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    </template>
 </div>
 
 <script>
 function tumTahsilatlarTab() {
     return {
         yukleniyor: true,
+        islemYapiyor: false, // <-- BU YENİ KİLİDİMİZ
         tahsilatlar: [],
+        islemdekiTahsilatlar: new Set(), // 1. YENİ KİLİT MEKANİZMASI (Sadece bu satırı ekle, diğerleri aynı kalacak)
         onayYetkisiVar: @js((bool) ($onayYetkisiVar || auth()->user()->isYonetici())),
         yoneticiMi: @js((bool) auth()->user()->isYonetici()),
         redModal: { acik: false, tahsilat: null, neden: '' },
+        dekontModal: { acik: false, url: '', baslik: '' }, // <-- BUNU EKLE
         sayfalama: {
             current_page: 1,
             last_page: 1,
@@ -300,28 +339,55 @@ function tumTahsilatlarTab() {
             return from + ' - ' + to + ' / ' + total + ' kayıt';
         },
 
-        async tahsilatOnayla(tahsilat) {
-            if (!confirm('Bu tahsilati onaylamak istiyor musunuz?')) return;
-            const res = await fetch('/tahsilat/' + tahsilat.id + '/onayla', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
-            if (res.ok) {
-                this.yukle(this.sayfalama.current_page || 1);
-                window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
-            } else {
-                const err = await res.json();
-                alert(err.error ?? 'Bir hata olustu.');
+        async tahsilatOnayla(tahsilat, event) {
+            // KİLİT 1: Eğer bu tahsilat ID'si şu an işleniyorsa, anında dur!
+            if (this.islemdekiTahsilatlar.has(tahsilat.id)) return;
+
+            // KİLİT 2: Enter tuşunun sekmemsi için odağı (focus) butondan siliyoruz
+            if (event && event.target) {
+                event.target.blur();
+            }
+
+            if (!confirm('Bu tahsilatı onaylamak istiyor musunuz?')) return;
+
+            // İşlem başladı, ID'yi kilit listesine at
+            this.islemdekiTahsilatlar.add(tahsilat.id);
+
+            try {
+                const res = await fetch('/tahsilat/' + tahsilat.id + '/onayla', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (res.ok) {
+                    await this.yukle(this.sayfalama.current_page || 1);
+                    window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
+                    window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
+                } else {
+                    const err = await res.json();
+                    alert(err.error ?? err.message ?? 'Bir hata oluştu.');
+                }
+            } finally {
+                // KİLİT 3 (İŞİN SIRRI): Kilidi işlemi bitirir bitirmez AÇMIYORUZ! 
+                // Sayfanın yenilenip yeşile dönmesi için ona 2 saniye zaman tanıyoruz.
+                setTimeout(() => {
+                    this.islemdekiTahsilatlar.delete(tahsilat.id);
+                }, 2000);
             }
         },
 
+        
         redModalAc(tahsilat) {
             this.redModal = { acik: true, tahsilat, neden: '' };
+        },
+
+        dekontGoruntule(dekont, tahsilat) {
+            this.dekontModal.url = '/tahsilat/dekont/' + dekont.id + '/view';
+            this.dekontModal.baslik = 'Dekont - ' + (tahsilat.borclu_adi || 'Bilinmiyor');
+            this.dekontModal.acik = true;
         },
 
         async tahsilatReddet() {
@@ -330,25 +396,33 @@ function tumTahsilatlarTab() {
                 alert('Lutfen red nedeni girin.');
                 return;
             }
-            const res = await fetch('/tahsilat/' + this.redModal.tahsilat.id + '/reddet', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ red_nedeni: this.redModal.neden.trim() }),
-            });
+            
+            if (this.islemYapiyor) return; // KİLİT
+            this.islemYapiyor = true;
+            
+            try {
+                const res = await fetch('/tahsilat/' + this.redModal.tahsilat.id + '/reddet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ red_nedeni: this.redModal.neden.trim() }),
+                });
 
-            if (res.ok) {
-                this.redModal.acik = false;
-                this.yukle(this.sayfalama.current_page || 1);
-                window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
-            } else {
-                const err = await res.json();
-                alert(err.error ?? 'Bir hata olustu.');
+                if (res.ok) {
+                    this.redModal.acik = false;
+                    await this.yukle(this.sayfalama.current_page || 1);
+                    window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
+                    window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
+                    window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
+                } else {
+                    const err = await res.json();
+                    alert(err.error ?? err.message ?? 'Bir hata olustu.');
+                }
+            } finally {
+                this.islemYapiyor = false;
             }
         },
 
@@ -357,30 +431,34 @@ function tumTahsilatlarTab() {
                 alert('Bu işlem sadece yönetici tarafından yapılabilir.');
                 return;
             }
-
-            if (!confirm('Bu onaylı tahsilatı iptal etmek istiyor musunuz?')) {
-                return;
-            }
+            if (this.islemYapiyor) return; // KİLİT
+            if (!confirm('Bu onaylı tahsilatı iptal etmek istiyor musunuz?')) return;
 
             const neden = prompt('İptal nedeni (opsiyonel):', '') ?? '';
-            const res = await fetch('/tahsilat/' + tahsilat.id + '/iptal', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ iptal_nedeni: neden.trim() }),
-            });
+            
+            this.islemYapiyor = true;
+            try {
+                const res = await fetch('/tahsilat/' + tahsilat.id + '/iptal', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ iptal_nedeni: neden.trim() }),
+                });
 
-            if (res.ok) {
-                this.yukle(this.sayfalama.current_page || 1);
-                window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
-                window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
-            } else {
-                const err = await res.json();
-                alert(err.error ?? 'Bir hata oluştu.');
+                if (res.ok) {
+                    await this.yukle(this.sayfalama.current_page || 1);
+                    window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
+                    window.dispatchEvent(new CustomEvent('tahsilat-dashboard-yenile'));
+                    window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
+                } else {
+                    const err = await res.json();
+                    alert(err.error ?? err.message ?? 'Bir hata oluştu.');
+                }
+            } finally {
+                this.islemYapiyor = false;
             }
         },
 

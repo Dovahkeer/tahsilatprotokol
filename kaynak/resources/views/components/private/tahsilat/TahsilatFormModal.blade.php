@@ -296,13 +296,18 @@ function tahsilatFormModal() {
         muvekkiller: [],
 
         tahsilatYontemSecenekleri: [
-            { value: 'muvekkil_hesabina_reddiyat', label: 'Müvekkil Hesabına Reddiyat' },
-            { value: 'vekil_hesabina_reddiyat', label: 'Vekil Hesabına Reddiyat' },
-            { value: 'muvekkil_hesabina_mail_order', label: 'Müvekkil Hesabına Mail Order' },
-            { value: 'vekil_hesabina_mail_order', label: 'Vekil Hesabına Mail Order' },
             { value: 'muvekkil_hesabina_eft_havale', label: 'Müvekkil Hesabına EFT/Havale' },
+            { value: 'muvekkil_hesabina_reddiyat', label: 'Müvekkil Hesabına Reddiyat' },
+            { value: 'muvekkil_hesabina_mail_order', label: 'Müvekkil Hesabına Mail Order' },
             { value: 'vekil_hesabina_eft_havale', label: 'Vekil Hesabına EFT/Havale' },
+            { value: 'vekil_hesabina_reddiyat', label: 'Vekil Hesabına Reddiyat' },
+            { value: 'vekil_hesabina_mail_order', label: 'Vekil Hesabına Mail Order' },
             { value: 'elden_alindi', label: 'Elden Alındı' },
+            { value: 'vekalet_ucreti_vekil_hesabina_eft_havale', label: 'Vekalet Ücreti Vekil Hesabına EFT/Havale' },
+            { value: 'vekalet_ucreti_reddiyat', label: 'Vekalet Ücreti Reddiyat' },
+            { value: 'vekalet_ucreti_mail_order', label: 'Vekalet Ücreti Mail Order' },
+            { value: 'vekalet_ucreti_elden_alindi', label: 'Vekalet Ücreti Elden Alındı' },
+            
         ],
 
         tahsilatBirimSecenekleri: [
@@ -314,6 +319,8 @@ function tahsilatFormModal() {
             { value: 'tasarrufun_iptali', label: 'Tasarrufun İptali' },
             { value: 'itirazin_iptali', label: 'İtirazın İptali' },
             { value: 'konkordato', label: 'Konkordato' },
+            { value: 'maas_haczi', label: 'Maaş Haczi' },
+
         ],
 
         form: {
