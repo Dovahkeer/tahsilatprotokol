@@ -49,6 +49,9 @@ class TahsilatService
             ->when(! empty($filters['bugun']), fn (Builder $query) => $query->whereDate('tahsilat_tarihi', now()->toDateString()))
             ->when(! empty($filters['tarih_baslangic']) && ! empty($filters['tarih_bitis']), fn (Builder $query) => $query
                 ->whereBetween('tahsilat_tarihi', [$filters['tarih_baslangic'], $filters['tarih_bitis']]))
+            // YENİ EKLENEN MÜVEKKİL VE PORTFÖY FİLTRELERİ
+            ->when(! empty($filters['muvekkil_id']), fn (Builder $query) => $query->where('muvekkil_id', $filters['muvekkil_id']))
+            ->when(! empty($filters['portfoy_id']), fn (Builder $query) => $query->whereHas('protokol', fn (Builder $p) => $p->where('portfoy_id', $filters['portfoy_id'])))
             ->orderByDesc('tahsilat_tarihi')
             ->orderByDesc('id');
 

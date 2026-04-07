@@ -9,17 +9,42 @@
     @endphp
 
     <div class="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/20 p-3">
-        <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2 flex-1">
-                <div class="xl:col-span-2">
+        <div class="flex flex-col gap-3">
+            {{-- Filtre Seçenekleri --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                
+                <div class="sm:col-span-2 xl:col-span-2">
                     <label class="block text-[11px] font-medium text-gray-500 mb-1">Arama</label>
                     <input x-model="filtre.q" @keydown.enter.prevent="filtreUygula()" type="text" placeholder="Müvekkil, borçlu, protokol no, TCKN/VKN"
                         class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                 </div>
 
                 <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">Müvekkil</label>
+                    <select x-model="filtre.muvekkil_id" @change="muvekkilDegisti(); filtreUygula()" 
+                        class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                        <option value="">Tüm Müvekkiller</option>
+                        <template x-for="m in muvekkiller" :key="m.id">
+                            <option :value="m.id" x-text="m.ad"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">Portföy</label>
+                    <select x-model="filtre.portfoy_id" @change="filtreUygula()" :disabled="!filtre.muvekkil_id || portfoyYukleniyor" 
+                        class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50">
+                        <option value="">Tüm Portföyler</option>
+                        <template x-for="p in portfoyler" :key="p.id">
+                            <option :value="p.id" x-text="p.ad"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-[11px] font-medium text-gray-500 mb-1">Durum</label>
-                    <select x-model="filtre.onay_durumu" class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                    <select x-model="filtre.onay_durumu" @change="filtreUygula()" 
+                        class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                         <option value="">Tüm Durumlar</option>
                         <option value="beklemede">Beklemede</option>
                         <option value="onaylandi">Onaylandı</option>
@@ -27,20 +52,24 @@
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-[11px] font-medium text-gray-500 mb-1">Başlangıç</label>
-                    <input x-model="filtre.tarih_baslangic" type="date"
-                        class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                {{-- TARİH KISMI: xl:col-span-2 ile rahatlatıldı --}}
+                <div class="sm:col-span-2 lg:col-span-2 xl:col-span-2 flex gap-2">
+                    <div class="w-1/2">
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">Başlangıç</label>
+                        <input x-model="filtre.tarih_baslangic" type="date"
+                            class="h-9 w-full px-2 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">Bitiş</label>
+                        <input x-model="filtre.tarih_bitis" type="date"
+                            class="h-9 w-full px-2 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-[11px] font-medium text-gray-500 mb-1">Bitiş</label>
-                    <input x-model="filtre.tarih_bitis" type="date"
-                        class="h-9 w-full px-3 rounded-lg text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200">
-                </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            {{-- Butonlar --}}
+            <div class="flex items-center justify-end gap-2">
                 <button @click="filtreUygula()"
                     class="h-9 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors">
                     Uygula
@@ -228,6 +257,9 @@
 function tumTahsilatlarTab() {
     return {
         yukleniyor: true,
+        muvekkiller: [], // BUNU EKLE
+        portfoyler: [], // BUNU EKLE
+        portfoyYukleniyor: false, // BUNU EKLE
         islemYapiyor: false, // <-- BU YENİ KİLİDİMİZ
         tahsilatlar: [],
         islemdekiTahsilatlar: new Set(), // 1. YENİ KİLİT MEKANİZMASI (Sadece bu satırı ekle, diğerleri aynı kalacak)
@@ -248,11 +280,37 @@ function tumTahsilatlarTab() {
             onay_durumu: '',
             tarih_baslangic: '',
             tarih_bitis: '',
+            muvekkil_id: '', // BUNU EKLE
+            portfoy_id: '', // BUNU EKLE
         },
 
         init() {
+            this.muvekkillerYukle(); // <-- BUNU EKLE
             this.yukle(1);
             window.addEventListener('tahsilat-listesi-yenile', () => this.yukle(this.sayfalama.current_page || 1));
+        },
+
+        async muvekkillerYukle() {
+            try {
+                const res = await fetch('/muvekkil/list', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (res.ok) this.muvekkiller = await res.json();
+            } catch (e) {}
+        },
+
+        async muvekkilDegisti() {
+            this.filtre.portfoy_id = '';
+            this.portfoyler = [];
+
+            if (!this.filtre.muvekkil_id) return;
+
+            this.portfoyYukleniyor = true;
+            try {
+                const res = await fetch('/tahsilat/protokol/portfoyler/' + this.filtre.muvekkil_id, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (res.ok) this.portfoyler = await res.json();
+            } catch (e) {}
+            this.portfoyYukleniyor = false;
         },
 
         buildParams(page = 1) {
@@ -266,6 +324,8 @@ function tumTahsilatlarTab() {
                 params.set('tarih_baslangic', this.filtre.tarih_baslangic);
                 params.set('tarih_bitis', this.filtre.tarih_bitis);
             }
+            if (this.filtre.muvekkil_id) params.set('muvekkil_id', this.filtre.muvekkil_id); // EKLENDİ
+            if (this.filtre.portfoy_id) params.set('portfoy_id', this.filtre.portfoy_id); // EKLENDİ
 
             return params;
         },
@@ -298,7 +358,8 @@ function tumTahsilatlarTab() {
         },
 
         filtreTemizle() {
-            this.filtre = { q: '', onay_durumu: '', tarih_baslangic: '', tarih_bitis: '' };
+            this.filtre = { q: '', onay_durumu: '', tarih_baslangic: '', tarih_bitis: '', muvekkil_id: '', portfoy_id: '' };
+            this.portfoyler = []; // Portföyleri de sıfırla
             this.yukle(1);
         },
 
