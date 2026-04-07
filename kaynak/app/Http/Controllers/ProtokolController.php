@@ -46,6 +46,11 @@ class ProtokolController extends Controller
         return response()->json($this->protokolService->detail($protokol, $request->user()));
     }
 
+    public function vadeTakip(): JsonResponse
+    {
+        return response()->json($this->protokolService->vadeTakipListesi());
+    }
+
     public function store(StoreProtokolRequest $request): JsonResponse
     {
         $protokol = $this->protokolService->create($request->validated(), $request->user());

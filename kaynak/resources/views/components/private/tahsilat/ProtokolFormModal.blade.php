@@ -223,36 +223,64 @@
                 </div>
             </div>
 
-            {{-- Taksitler --}}
+            {{-- Taksitler (Dinamik Çek/Senet Modüllü) --}}
             <div x-show="!duzenlemeModu" class="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div class="flex items-center justify-between mb-3">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Taksitler</label>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Taksit / Çek / Senet Planı</label>
                     <button type="button" @click="taksitEkle()"
-                        class="text-xs text-amber-600 hover:text-amber-700 font-medium">+ Taksit Ekle</button>
+                        class="text-xs text-amber-600 hover:text-amber-700 font-medium">+ Yeni Ekle</button>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-3">
                     <template x-for="(taksit, i) in form.taksitler" :key="i">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400 w-16 flex-shrink-0" x-text="(i+1) + '. Taksit'"></span>
-                            <input type="date" x-model="taksit.taksit_tarihi" required
-                                class="flex-1 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
-                            <input type="text"
-                                x-model="taksit.taksit_tutari"
-                                @input="taksit.taksit_tutari = formatAmountInput($event.target.value)"
-                                inputmode="decimal"
-                                placeholder="Tutar"
-                                required
-                                class="w-28 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
-                            <button type="button" @click="form.taksitler.splice(i, 1)"
-                                class="text-red-400 hover:text-red-600 flex-shrink-0">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
+                        <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30 transition-all">
+                            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                                <span class="text-xs font-medium text-gray-500 w-14 flex-shrink-0" x-text="(i+1) + '. Sıra'"></span>
+
+                                <select x-model="taksit.odeme_tipi"
+                                    class="w-24 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200">
+                                    <option value="taksit">Taksit</option>
+                                    <option value="cek">Çek</option>
+                                    <option value="senet">Senet</option>
+                                </select>
+
+                                <input type="date" x-model="taksit.taksit_tarihi" required title="Vade Tarihi"
+                                    class="flex-1 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+
+                                <input type="text"
+                                    x-model="taksit.taksit_tutari"
+                                    @input="taksit.taksit_tutari = formatAmountInput($event.target.value)"
+                                    inputmode="decimal"
+                                    placeholder="Tutar (TL)"
+                                    required
+                                    class="w-28 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+
+                                <button type="button" @click="form.taksitler.splice(i, 1)" title="Sil"
+                                    class="text-red-400 hover:text-red-600 flex-shrink-0 ml-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+
+                            {{-- Çek/Senet Detayları (Sadece Çek veya Senet seçilirse animasyonla açılır) --}}
+                            <div x-show="taksit.odeme_tipi === 'cek' || taksit.odeme_tipi === 'senet'"
+                                x-collapse
+                                class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <input type="text" x-model="taksit.banka_adi" placeholder="Banka Adı (Örn: Ziraat)"
+                                        class="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+                                </div>
+                                <div>
+                                    <input type="text" x-model="taksit.seri_no" placeholder="Evrak Seri No"
+                                        class="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+                                </div>
+                                <div>
+                                    <input type="text" x-model="taksit.kesideci" placeholder="Keşideci (Yazan)"
+                                        class="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+                                </div>
+                            </div>
                         </div>
                     </template>
                     <p x-show="form.taksitler.length === 0" class="text-xs text-gray-400 text-center py-2">
-                        Taksit eklenmedi. Peşin ödeme olarak işlenecektir.
+                        Ödeme planı eklenmedi. Tamamı peşin ödeme olarak işlenecektir.
                     </p>
                 </div>
             </div>
@@ -502,7 +530,14 @@ function protokolFormModal() {
         },
 
         taksitEkle() {
-            this.form.taksitler.push({ taksit_tarihi: '', taksit_tutari: '' });
+            this.form.taksitler.push({ 
+                odeme_tipi: 'taksit', // Varsayılan olarak taksit seçili gelsin
+                taksit_tarihi: '', 
+                taksit_tutari: '',
+                banka_adi: '',        // Yeni alan
+                seri_no: '',          // Yeni alan
+                kesideci: ''          // Yeni alan
+            });
         },
 
         hacizciEkle() {

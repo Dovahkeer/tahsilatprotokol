@@ -118,6 +118,15 @@
                 </div>
 
                 <div class="ml-auto flex items-center gap-1.5">
+                    {{-- YENİ: Vade Takip Butonu --}}
+                    <button @click="vadeTakipAc()"
+                        class="h-9 px-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors whitespace-nowrap inline-flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Vade Takibi
+                    </button>
+
                     @if($topluProtokolYetkiVar)
                     <button @click="topluProtokolModalAc()"
                         class="h-9 px-3 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors whitespace-nowrap inline-flex items-center gap-1.5">
@@ -132,7 +141,7 @@
                         class="h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-colors whitespace-nowrap inline-flex items-center">
                         Filtreleri Temizle
                     </button>
-
+                    
                     @if($protokolYetkiVar || auth()->user()->isYonetici())
                     <button @click="yeniProtokolAc()"
                         class="inline-flex items-center gap-2 h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm ring-1 ring-amber-500/30 transition-colors whitespace-nowrap">
@@ -347,6 +356,200 @@
     </div>
     </template>
 
+
+{{-- VADE TAKİP KOMUTA MERKEZİ MODALI --}}
+    <template x-teleport="body">
+    <div x-show="vadeTakipModal.acik" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="vadeTakipModal.acik = false"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4">
+            <div class="relative w-full max-w-7xl max-h-[90vh] flex flex-col rounded-2xl bg-gray-50 dark:bg-gray-900 shadow-2xl overflow-hidden" @click.stop>
+                
+                {{-- Başlık --}}
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg text-rose-600 dark:text-rose-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Operasyon Merkezi: Vade Takibi</h3>
+                            <p class="text-xs text-gray-500">Gecikmiş, bugün vadesi dolan ve yaklaşan tüm ödemeler.</p>
+                        </div>
+                    </div>
+                    <button @click="vadeTakipModal.acik = false" class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Yükleniyor --}}
+                <div x-show="vadeTakipModal.yukleniyor" class="flex-1 flex items-center justify-center p-12">
+                    <svg class="animate-spin w-10 h-10 text-rose-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                </div>
+
+                {{-- 3'lü Sütun Yapısı --}}
+                <div x-show="!vadeTakipModal.yukleniyor" class="flex-1 overflow-y-auto p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        {{-- SÜTUN 1: GECİKMİŞ (Kırmızı) --}}
+                        <div class="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden">
+                            <div class="px-4 py-3 border-b border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/20 flex justify-between items-center">
+                                <h4 class="font-bold text-red-700 dark:text-red-400">🔴 Gecikmiş</h4>
+                                <div class="flex items-center gap-1">
+                                    <button @click="vadeCiktiAl('gecikmis', 'pdf')" class="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded transition-colors" title="PDF İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                    </button>
+                                    <button @click="vadeCiktiAl('gecikmis', 'excel')" class="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded transition-colors" title="Excel İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </button>
+                                    <span class="ml-1 text-[11px] font-bold bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full" x-text="vadeTakipModal.data.gecikmis?.length || 0"></span>
+                                </div>
+                            </div>
+                            <div class="p-3 space-y-3 overflow-y-auto flex-1 max-h-[60vh]">
+                                <template x-for="item in vadeTakipModal.data.gecikmis" :key="item.id">
+                                    <div class="p-3 border border-red-100 dark:border-red-900/30 rounded-lg bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200" x-text="item.borclu_adi"></span>
+                                            <span class="text-[10px] font-mono text-red-600 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded" x-text="item.vade_tarihi"></span>
+                                        </div>
+                                        <div class="text-[11px] text-gray-500 mb-2" x-text="item.muvekkil_adi + ' | ' + item.protokol_no"></div>
+                                        <div class="flex justify-between items-end mt-2 pt-2 border-t border-gray-50 dark:border-gray-700">
+                                            <div>
+                                                <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded" 
+                                                    :class="item.odeme_tipi === 'cek' ? 'bg-purple-100 text-purple-700' : (item.odeme_tipi === 'senet' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600')"
+                                                    x-text="item.odeme_tipi"></span>
+                                                <button x-show="item.odeme_tipi !== 'taksit'" @click="evrakDetayAc(item)" class="text-[10px] text-blue-600 hover:underline ml-1">Detaylar</button>
+                                            </div>
+                                            <span class="font-bold text-red-600 dark:text-red-400 text-sm" x-text="formatPara(item.kalan_tutar)"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <p x-show="!vadeTakipModal.data.gecikmis?.length" class="text-xs text-center text-gray-400 py-4">Harika! Gecikmiş ödeme yok.</p>
+                            </div>
+                        </div>
+
+                        {{-- SÜTUN 2: BUGÜN (Sarı/Amber) --}}
+                        <div class="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl border border-amber-200 dark:border-amber-900/50 shadow-sm overflow-hidden">
+                            <div class="px-4 py-3 border-b border-amber-100 dark:border-amber-900/30 bg-amber-50/50 dark:bg-amber-900/20 flex justify-between items-center">
+                                <h4 class="font-bold text-amber-700 dark:text-amber-400">🟡 Bugün Beklenen</h4>
+                                <div class="flex items-center gap-1">
+                                    <button @click="vadeCiktiAl('bugun', 'pdf')" class="p-1 text-red-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded transition-colors" title="PDF İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                    </button>
+                                    <button @click="vadeCiktiAl('bugun', 'excel')" class="p-1 text-emerald-600 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded transition-colors" title="Excel İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </button>
+                                    <span class="ml-1 text-[11px] font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full" x-text="vadeTakipModal.data.bugun?.length || 0"></span>
+                                </div>
+                            </div>
+                            <div class="p-3 space-y-3 overflow-y-auto flex-1 max-h-[60vh]">
+                                <template x-for="item in vadeTakipModal.data.bugun" :key="item.id">
+                                    <div class="p-3 border border-amber-100 dark:border-amber-900/30 rounded-lg bg-white dark:bg-gray-800 hover:shadow-md transition-shadow ring-1 ring-amber-400/30">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200" x-text="item.borclu_adi"></span>
+                                            <span class="text-[10px] font-mono text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">BUGÜN</span>
+                                        </div>
+                                        <div class="text-[11px] text-gray-500 mb-2" x-text="item.muvekkil_adi + ' | ' + item.protokol_no"></div>
+                                        <div class="flex justify-between items-end mt-2 pt-2 border-t border-gray-50 dark:border-gray-700">
+                                            <div>
+                                                <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded" 
+                                                    :class="item.odeme_tipi === 'cek' ? 'bg-purple-100 text-purple-700' : (item.odeme_tipi === 'senet' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600')"
+                                                    x-text="item.odeme_tipi"></span>
+                                                <button x-show="item.odeme_tipi !== 'taksit'" @click="evrakDetayAc(item)" class="text-[10px] text-blue-600 hover:underline ml-1">Detaylar</button>
+                                            </div>
+                                            <span class="font-bold text-amber-600 dark:text-amber-400 text-sm" x-text="formatPara(item.kalan_tutar)"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <p x-show="!vadeTakipModal.data.bugun?.length" class="text-xs text-center text-gray-400 py-4">Bugün için ödeme planı yok.</p>
+                            </div>
+                        </div>
+
+                        {{-- SÜTUN 3: YAKLAŞANLAR (Mavi) --}}
+                        <div class="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm overflow-hidden">
+                            <div class="px-4 py-3 border-b border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/20 flex justify-between items-center">
+                                <h4 class="font-bold text-blue-700 dark:text-blue-400">🔵 Yaklaşan (7 Gün)</h4>
+                                <div class="flex items-center gap-1">
+                                    <button @click="vadeCiktiAl('yaklasan', 'pdf')" class="p-1 text-red-500 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors" title="PDF İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                    </button>
+                                    <button @click="vadeCiktiAl('yaklasan', 'excel')" class="p-1 text-emerald-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors" title="Excel İndir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </button>
+                                    <span class="ml-1 text-[11px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full" x-text="vadeTakipModal.data.yaklasanlar?.length || 0"></span>
+                                </div>
+                            </div>
+                            <div class="p-3 space-y-3 overflow-y-auto flex-1 max-h-[60vh]">
+                                <template x-for="item in vadeTakipModal.data.yaklasanlar" :key="item.id">
+                                    <div class="p-3 border border-blue-100 dark:border-blue-900/30 rounded-lg bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200" x-text="item.borclu_adi"></span>
+                                            <span class="text-[10px] font-mono text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded" x-text="item.vade_tarihi"></span>
+                                        </div>
+                                        <div class="text-[11px] text-gray-500 mb-2" x-text="item.muvekkil_adi + ' | ' + item.protokol_no"></div>
+                                        <div class="flex justify-between items-end mt-2 pt-2 border-t border-gray-50 dark:border-gray-700">
+                                            <div>
+                                                <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded" 
+                                                    :class="item.odeme_tipi === 'cek' ? 'bg-purple-100 text-purple-700' : (item.odeme_tipi === 'senet' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600')"
+                                                    x-text="item.odeme_tipi"></span>
+                                                <button x-show="item.odeme_tipi !== 'taksit'" @click="evrakDetayAc(item)" class="text-[10px] text-blue-600 hover:underline ml-1">Detaylar</button>
+                                            </div>
+                                            <span class="font-bold text-blue-600 dark:text-blue-400 text-sm" x-text="formatPara(item.kalan_tutar)"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <p x-show="!vadeTakipModal.data.yaklasanlar?.length" class="text-xs text-center text-gray-400 py-4">Önümüzdeki hafta rahatız.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </template>
+
+    {{-- KÜÇÜK POP-UP: ÇEK/SENET DETAYLARI --}}
+    <template x-teleport="body">
+        <div x-show="evrakDetayModal.acik" class="fixed inset-0 z-[70] flex items-center justify-center p-4" x-cloak>
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="evrakDetayModal.acik = false"></div>
+            
+            {{-- Genişliği max-w-md (yaklaşık 450px) yaptık ve esnekliği artırdık --}}
+            <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6" @click.stop>
+                
+                <h4 class="text-sm font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-4 uppercase text-purple-600 dark:text-purple-400" 
+                    x-text="evrakDetayModal.data?.odeme_tipi + ' DETAYLARI'"></h4>
+                
+                <div class="space-y-3 text-sm">
+                    {{-- Uzun yazılar için items-start ve break-words kullandık --}}
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="text-gray-500 shrink-0">Banka:</span> 
+                        <strong class="text-right break-words" x-text="evrakDetayModal.data?.evrak_detayi?.banka_adi || '-'"></strong>
+                    </div>
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="text-gray-500 shrink-0">Seri No:</span> 
+                        <strong class="font-mono text-amber-600 text-right break-words" x-text="evrakDetayModal.data?.evrak_detayi?.seri_no || '-'"></strong>
+                    </div>
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="text-gray-500 shrink-0">Keşideci:</span> 
+                        <strong class="text-right break-words" x-text="evrakDetayModal.data?.evrak_detayi?.kesideci || '-'"></strong>
+                    </div>
+                    
+                    {{-- Vade Tarihi ve Tutar --}}
+                    <div class="flex justify-between items-start gap-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 shrink-0">Vade Tarihi:</span> 
+                        <strong class="text-right text-rose-600 dark:text-rose-400" x-text="evrakDetayModal.data?.vade_tarihi || '-'"></strong>
+                    </div>
+                    <div class="flex justify-between items-center gap-4 pt-1">
+                        <span class="text-gray-500 shrink-0">Tutar:</span> 
+                        <strong class="text-xl text-gray-900 dark:text-white text-right" x-text="formatPara(evrakDetayModal.data?.kalan_tutar)"></strong>
+                    </div>
+                </div>
+                
+                <button @click="evrakDetayModal.acik = false" class="mt-6 w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors">Kapat</button>
+            </div>
+        </div>
+    </template>
+
+
     {{-- Yeni Protokol Form Modalı --}}
     @include('components.private.tahsilat.ProtokolFormModal')
     @if($topluProtokolYetkiVar)
@@ -395,6 +598,8 @@ function protokolTab() {
         },
         taksitModal: { acik: false, protokol: null },
         pdfModal: { acik: false, protokol: null, url: '' },
+        vadeTakipModal: { acik: false, yukleniyor: false, data: { gecikmis: [], bugun: [], yaklasanlar: [] } },
+        evrakDetayModal: { acik: false, data: null },
 
         buildParams(page = 1) {
             const params = new URLSearchParams();
@@ -591,6 +796,38 @@ function protokolTab() {
 
         taksitDetayAc(protokol) {
             this.taksitModal = { acik: true, protokol };
+        },
+
+        async vadeTakipAc() {
+            this.vadeTakipModal.acik = true;
+            this.vadeTakipModal.yukleniyor = true;
+            try {
+                const res = await fetch('/tahsilat/protokol/vade-takip', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (res.ok) {
+                    this.vadeTakipModal.data = await res.json();
+                }
+            } catch (e) {
+                console.error("Vade takip yüklenemedi:", e);
+            } finally {
+                this.vadeTakipModal.yukleniyor = false;
+            }
+        },
+
+        evrakDetayAc(item) {
+            this.evrakDetayModal.data = item;
+            this.evrakDetayModal.acik = true;
+        },
+
+        vadeCiktiAl(listeTipi, format) {
+            // listeTipi: 'gecikmis', 'bugun', 'yaklasan'
+            // format: 'pdf', 'excel'
+            
+            const url = `/tahsilat/export/vade-takip?tip=${listeTipi}&format=${format}`;
+            
+            // Tarayıcıya "Git ve bu dosyayı indir" talimatı veriyoruz
+            window.open(url, '_blank');
         },
 
         pdfGoster(protokol) {

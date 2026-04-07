@@ -29,7 +29,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard-data', [TahsilatDashboardController::class, 'dashboardData']);
         Route::get('/dashboard-beklenti-protokoller', [TahsilatDashboardController::class, 'beklentiProtokoller']);
         Route::get('/prim/pivot-table', [TahsilatDashboardController::class, 'primPivot']);
-
+        // YENİ EKLENEN VADE TAKİP ROTASI
+        Route::get('/protokol/vade-takip', [ProtokolController::class, 'vadeTakip']);
+        
         Route::get('/protokol/list', [ProtokolController::class, 'list']);
         Route::post('/protokol/store', [ProtokolController::class, 'store']);
         Route::get('/protokol/hacizciler', [ProtokolController::class, 'hacizciler']);
@@ -63,6 +65,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/export/excel', [ExportController::class, 'excel'])->name('tahsilat.export.excel');
         Route::get('/export/mail-order-pdf', [ExportController::class, 'mailOrderPdf'])->name('tahsilat.export.mail-order-pdf');
+
+        // YENİ EKLENEN ROTA:
+        Route::get('/export/vade-takip', [ExportController::class, 'vadeTakip'])->name('tahsilat.export.vade-takip');
 
         Route::get('/{tahsilat}', [TahsilatController::class, 'show'])->whereNumber('tahsilat');
         Route::put('/{tahsilat}', [TahsilatController::class, 'update'])->whereNumber('tahsilat');

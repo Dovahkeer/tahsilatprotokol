@@ -35,6 +35,10 @@ class StoreProtokolRequest extends FormRequest
             'taksitler' => ['nullable', 'array'],
             'taksitler.*.taksit_tarihi' => ['required_with:taksitler', 'date'],
             'taksitler.*.taksit_tutari' => ['required_with:taksitler', 'regex:/^\d+(\.\d{2})?$/'],
+            'taksitler.*.odeme_tipi' => ['required_with:taksitler', 'in:taksit,cek,senet'],
+            'taksitler.*.banka_adi' => ['nullable', 'string', 'max:255'],
+            'taksitler.*.seri_no' => ['nullable', 'string', 'max:255'],
+            'taksitler.*.kesideci' => ['nullable', 'string', 'max:255'],
         ];
     }
 

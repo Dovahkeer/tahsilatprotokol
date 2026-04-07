@@ -117,12 +117,24 @@ class ProtokolService
             ]);
 
             foreach ($taksitler->values() as $index => $taksit) {
-                $protokol->taksitler()->create([
+                // Önce klasik taksit kaydını ana tabloya atıyoruz
+                $yeniTaksit = $protokol->taksitler()->create([
                     'taksit_no' => $index + 1,
                     'taksit_tarihi' => $taksit['taksit_tarihi'],
                     'taksit_tutari' => Money::normalize($taksit['taksit_tutari']),
                     'odenen_tutar' => '0.00',
                 ]);
+
+                // Eğer ödeme tipi Çek veya Senet ise, uzantı tablosuna bilgileri yapıştırıyoruz!
+                $odemeTipi = $taksit['odeme_tipi'] ?? 'taksit';
+                if ($odemeTipi === 'cek' || $odemeTipi === 'senet') {
+                    $yeniTaksit->evrakDetayi()->create([
+                        'evrak_tipi' => $odemeTipi,
+                        'banka_adi' => $taksit['banka_adi'] ?? null,
+                        'seri_no' => $taksit['seri_no'] ?? null,
+                        'kesideci' => $taksit['kesideci'] ?? null,
+                    ]);
+                }
             }
 
             $this->syncHacizciler($protokol, $data['hacizciler']);
@@ -294,6 +306,60 @@ class ProtokolService
         }
 
         return (bool) optional($user->yetkiKaydi)->protokol_duzenleyebilir;
+    }
+
+    public function vadeTakipListesi(): array
+    {
+        $bugun = now()->startOfDay();
+        $limitTarih = now()->addDays(7)->endOfDay(); // Önümüzdeki 7 gün
+
+        // Sadece aktif protokollerdeki, henüz tamamen ödenmemiş ve vadesi 7 gün sonrasına kadar olanları getir
+        $taksitler = ProtokolTaksit::query()
+            ->with(['protokol.muvekkil', 'evrakDetayi'])
+            ->whereHas('protokol', fn ($q) => $q->where('aktif', true))
+            ->whereRaw('odenen_tutar < taksit_tutari')
+            ->whereDate('taksit_tarihi', '<=', $limitTarih)
+            ->orderBy('taksit_tarihi', 'asc')
+            ->get();
+
+        $gecikmis = [];
+        $bugunOdenecekler = [];
+        $yaklasanlar = [];
+
+        foreach ($taksitler as $taksit) {
+            $vade = Carbon::parse($taksit->taksit_tarihi)->startOfDay();
+            $kalanTutar = Money::max(Money::sub($taksit->taksit_tutari, $taksit->odenen_tutar), '0');
+
+            $data = [
+                'id' => $taksit->id,
+                'protokol_id' => $taksit->protokol_id,
+                'protokol_no' => $taksit->protokol->protokol_no,
+                'muvekkil_adi' => $taksit->protokol->muvekkil->ad ?? '-',
+                'borclu_adi' => $taksit->protokol->borclu_adi,
+                'vade_tarihi' => $taksit->taksit_tarihi->format('d.m.Y'), // Ekranda güzel görünsün
+                'kalan_tutar' => Money::float($kalanTutar),
+                'odeme_tipi' => $taksit->evrakDetayi->evrak_tipi ?? 'taksit',
+                'evrak_detayi' => $taksit->evrakDetayi ? [
+                    'banka_adi' => $taksit->evrakDetayi->banka_adi,
+                    'seri_no' => $taksit->evrakDetayi->seri_no,
+                    'kesideci' => $taksit->evrakDetayi->kesideci,
+                ] : null,
+            ];
+
+            if ($vade->lt($bugun)) {
+                $gecikmis[] = $data;
+            } elseif ($vade->equalTo($bugun)) {
+                $bugunOdenecekler[] = $data;
+            } else {
+                $yaklasanlar[] = $data;
+            }
+        }
+
+        return [
+            'gecikmis' => $gecikmis,
+            'bugun' => $bugunOdenecekler,
+            'yaklasanlar' => $yaklasanlar,
+        ];
     }
 
     public function splitTaksitExpectation(Collection $protokoller, CarbonInterface $ay): array
