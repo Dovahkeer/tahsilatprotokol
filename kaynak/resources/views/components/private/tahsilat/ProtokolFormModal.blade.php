@@ -261,7 +261,7 @@
                             </div>
 
                             {{-- Çek/Senet Detayları (Sadece Çek veya Senet seçilirse animasyonla açılır) --}}
-                            <div x-show="taksit.odeme_tipi === 'cek' || taksit.odeme_tipi === 'senet'"
+                            <div x-show="taksit.odeme_tipi === 'cek'"
                                 x-collapse
                                 class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div>
