@@ -62,4 +62,31 @@ class YetkiController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function hacizciEkle(\Illuminate\Http\Request $request): JsonResponse
+    {
+        // Gelen verinin düzgün olup olmadığını kontrol et
+        $validated = $request->validate([
+            'ad_soyad' => ['required', 'string', 'max:255'],
+            'sicil_no' => ['nullable', 'string', 'max:255'],
+            'kademe' => ['required', 'string'],
+        ]);
+
+        // Veritabanı işlemi için servise gönder
+        $this->yetkiService->createHacizci($validated, $request->user());
+
+        return response()->json(['success' => true]);
+    }
+
+    public function kademeEkle(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'kademe_no' => ['required', 'integer', 'min:1'],
+            'varsayilan_prim_orani' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $this->yetkiService->createKademe($validated, $request->user());
+
+        return response()->json(['success' => true]);
+    }
 }

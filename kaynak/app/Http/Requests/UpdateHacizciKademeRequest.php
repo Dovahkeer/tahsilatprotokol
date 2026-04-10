@@ -17,6 +17,8 @@ class UpdateHacizciKademeRequest extends FormRequest
             'hacizciler' => ['required', 'array'],
             'hacizciler.*.hacizci_id' => ['required', 'exists:hacizciler,id'],
             'hacizciler.*.kademe' => ['required', 'string'],
+            // YENİ EKLENEN KURAL:
+            'hacizciler.*.aktif' => ['required', 'boolean'],
         ];
     }
 }

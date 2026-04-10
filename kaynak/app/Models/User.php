@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'aktif', // <-- 1. YENİ EKLENEN BURASI
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'aktif' => 'boolean', // <-- 2. YENİ EKLENEN BURASI
         ];
     }
 
