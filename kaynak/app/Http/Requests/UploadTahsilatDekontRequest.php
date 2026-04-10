@@ -14,7 +14,8 @@ class UploadTahsilatDekontRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'dekont' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:2048'],
+            // 2048 yerine 15360 (15 MB) yapıyoruz
+            'dekont' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp,bmp,gif,tiff,tif', 'max:15360'],
         ];
     }
 }

@@ -29,7 +29,7 @@ class StoreTahsilatRequest extends FormRequest
             'tahsilat_birimleri' => ['required', 'array', 'min:1'],
             'tahsilat_birimleri.*' => ['required', Rule::in(array_keys(config('tahsilat.tahsilat_birimleri', [])))],
             'notlar' => ['nullable', 'string'],
-            'dekont' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:2048'],
+            'dekont' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:15360'],
         ];
     }
 }

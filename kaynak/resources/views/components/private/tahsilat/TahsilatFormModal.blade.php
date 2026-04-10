@@ -1,4 +1,5 @@
-﻿{{-- Yeni Tahsilat Form Modalı --}}
+﻿<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+{{-- Yeni Tahsilat Form Modalı --}}
 <template x-teleport="body">
 <div x-data="tahsilatFormModal()"
      x-show="acik"
@@ -217,35 +218,40 @@
 
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 w-full md:max-w-sm md:justify-self-end">
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            <span x-text="duzenlemeModu ? 'Yeni Dekont (Opsiyonel)' : 'Dekont (PDF/JPG/PNG) *'"></span>
+                            <span x-text="duzenlemeModu ? 'Ek Dekontlar (Opsiyonel)' : 'Dekontlar (PDF/JPG/PNG) *'"></span>
                         </label>
-                        <input type="file"
-                            x-ref="dekontInput"
-                            @change="dekontSecildi($event)"
-                            accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
-                            class="sr-only">
-                        <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <button type="button"
-                                @click="$refs.dekontInput?.click()"
-                                class="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors">
-                                Dosya Seç
-                            </button>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 sm:text-right">
-                                PDF/JPG/PNG, en fazla 2 MB
+                        
+                        {{-- Sürükle Bırak Alanı --}}
+                        <div class="relative flex flex-col items-center justify-center w-full h-24 px-4 mt-2 transition-colors border-2 border-dashed rounded-xl"
+                             :class="surukleniyor ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700/50'"
+                             @dragover.prevent="surukleniyor = true"
+                             @dragleave.prevent="surukleniyor = false"
+                             @drop.prevent="dosyalariAl($event)">
+                             
+                            <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff" class="absolute inset-0 z-50 w-full h-full opacity-0 cursor-pointer" @change="dosyalariAl($event)">
+                            
+                            <div class="flex flex-col items-center justify-center text-center pointer-events-none">
+                                <svg class="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="font-bold text-amber-600">Dosyaları seçin</span> veya sürükleyin
+                                </p>
                             </div>
                         </div>
-                        <div x-show="form.dekont" class="mt-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate" x-text="form.dekont?.name ?? ''"></p>
-                                <p class="text-[11px] text-emerald-600/80 dark:text-emerald-300/80" x-text="formatDosyaBoyutu(form.dekont?.size ?? 0)"></p>
-                            </div>
-                            <button type="button"
-                                @click="dekontTemizle()"
-                                class="shrink-0 text-[11px] px-2 py-1 rounded-md bg-white/80 dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-white">
-                                Kaldır
-                            </button>
+
+                        {{-- Dosya Listesi --}}
+                        <div x-show="dosyalar.length > 0" class="mt-2 space-y-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                            <template x-for="(dosya, index) in dosyalar" :key="index">
+                                <div class="flex items-center justify-between p-2 text-xs bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                        <span class="truncate text-emerald-800 dark:text-emerald-300 font-medium" x-text="dosya.name"></span>
+                                    </div>
+                                    <button type="button" @click="dosyalar.splice(index, 1)" class="shrink-0 text-emerald-700 hover:text-red-600 ml-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
-                        <p class="text-[11px] text-gray-500 mt-1" x-text="duzenlemeModu ? 'Yeni dekont seçerseniz mevcut kayda eklenir.' : 'Maksimum 2 MB. PDF/JPG/JPEG/PNG/WEBP dosyalari kabul edilir.'"></p>
                     </div>
                 </div>
             </div>
@@ -266,7 +272,7 @@
                 <button type="submit" :disabled="kaydediliyor"
                     class="px-5 py-2 text-sm bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">
                     <span x-show="!kaydediliyor" x-text="duzenlemeModu ? 'Değişiklikleri Kaydet' : 'Kaydet'"></span>
-                    <span x-show="kaydediliyor">Kaydediliyor...</span>
+                    <span x-show="kaydediliyor" x-text="kaydediliyorDurum"></span>
                 </button>
             </div>
 
@@ -274,6 +280,46 @@
         </div>
     </div>
     </div>
+    {{-- BAŞARI VE WHATSAPP MODALI --}}
+        <div x-show="basariModaliAcik" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 overflow-hidden" @click.stop>
+                <div class="bg-emerald-500 p-5 text-center relative">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
+                        <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Tahsilat Kaydedildi!</h3>
+                </div>
+
+                <div class="p-5 space-y-4" x-show="basariData">
+                    <a :href="basariData?.download_url" download class="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl font-bold transition-colors border border-gray-300 dark:border-gray-600">
+                        <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                        Birleştirilmiş Dekontu İndir
+                    </a>
+
+                    <div class="pt-2">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-bold text-gray-700 dark:text-gray-300">WhatsApp Şablonu</label>
+                            <button type="button" @click="whatsappKopyala()" class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                <span x-text="kopyalandi ? 'Kopyalandı!' : 'Kopyala'"></span>
+                            </button>
+                        </div>
+                        <textarea readonly rows="6" class="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-800 dark:text-gray-200 resize-none outline-none focus:ring-2 focus:ring-amber-500 font-mono" x-text="`*YENİ TAHSİLAT GİRİŞİ*
+                        *Borçlu:* ${basariData?.borclu}
+                        *TCKN/VKN:* ${basariData?.tckn ?? '-'}
+                        *Müvekkil:* ${basariData?.muvekkil}
+                        *Portföy:* ${basariData?.portfoy}
+                        *Taksit/Durum:* ${basariData?.taksit}
+                        *Tutar:* ${basariData?.tutar}
+                        Makbuz sisteme yüklendi. İyi çalışmalar.`"></textarea>
+                    </div>
+                </div>
+
+                <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button type="button" @click="basariModaliAcik = false; kapat()" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold rounded-lg transition-colors">Kapat</button>
+                </div>
+            </div>
+        </div>
 </div>
 </template>
 
@@ -285,8 +331,8 @@ function tahsilatFormModal() {
         duzenlenenTahsilatId: null,
         kaydediliyor: false,
         hata: '',
-        maxDekontBytes: 2 * 1024 * 1024,
-        izinliDekontUzantilari: ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
+        maxDekontBytes: 15 * 1024 * 1024, // 15 MB
+        izinliDekontUzantilari: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff'],
         aramaYukleniyor: false,
         aramaCalisti: false,
         aramaZamanlayici: null,
@@ -294,6 +340,14 @@ function tahsilatFormModal() {
         protokoller: [],
         eslesenProtokoller: [],
         muvekkiller: [],
+        
+        // Yeni Sistem Değişkenleri
+        surukleniyor: false,
+        dosyalar: [],
+        basariModaliAcik: false,
+        basariData: null,
+        kopyalandi: false,
+        kaydediliyorDurum: 'Kaydediliyor...',
 
         tahsilatYontemSecenekleri: [
             { value: 'muvekkil_hesabina_eft_havale', label: 'Müvekkil Hesabına EFT/Havale' },
@@ -307,7 +361,6 @@ function tahsilatFormModal() {
             { value: 'vekalet_ucreti_reddiyat', label: 'Vekalet Ücreti Reddiyat' },
             { value: 'vekalet_ucreti_mail_order', label: 'Vekalet Ücreti Mail Order' },
             { value: 'vekalet_ucreti_elden_alindi', label: 'Vekalet Ücreti Elden Alındı' },
-            
         ],
 
         tahsilatBirimSecenekleri: [
@@ -320,7 +373,6 @@ function tahsilatFormModal() {
             { value: 'itirazin_iptali', label: 'İtirazın İptali' },
             { value: 'konkordato', label: 'Konkordato' },
             { value: 'maas_haczi', label: 'Maaş Haczi' },
-
         ],
 
         form: {
@@ -334,7 +386,6 @@ function tahsilatFormModal() {
             tutar: '',
             tahsilat_yontemi: '',
             tahsilat_birimleri: [],
-            dekont: null,
             notlar: '',
         },
 
@@ -423,7 +474,6 @@ function tahsilatFormModal() {
                     tutar: this.formatAmountFromNumber(tahsilat.tutar ?? ''),
                     tahsilat_yontemi: tahsilat.tahsilat_yontemi ?? '',
                     tahsilat_birimleri: Array.isArray(tahsilat.tahsilat_birimleri) ? tahsilat.tahsilat_birimleri : [],
-                    dekont: null,
                     notlar: tahsilat.notlar ?? '',
                 };
 
@@ -607,43 +657,6 @@ function tahsilatFormModal() {
             this.form.tutar = secim ? this.formatAmountFromNumber(secim.tutar) : '';
         },
 
-        dekontSecildi(event) {
-            const dosya = event?.target?.files?.[0] ?? null;
-            if (!dosya) {
-                this.form.dekont = null;
-                return;
-            }
-
-            const uzanti = ((dosya.name ?? '').split('.').pop() ?? '').toLowerCase();
-            if (!this.izinliDekontUzantilari.includes(uzanti)) {
-                this.hata = 'Dekont formati gecersiz. PDF/JPG/JPEG/PNG/WEBP yukleyebilirsiniz.';
-                this.form.dekont = null;
-                if (this.$refs.dekontInput) {
-                    this.$refs.dekontInput.value = '';
-                }
-                return;
-            }
-
-            if (dosya.size > this.maxDekontBytes) {
-                this.hata = 'Dekont en fazla 2 MB olabilir.';
-                this.form.dekont = null;
-                if (this.$refs.dekontInput) {
-                    this.$refs.dekontInput.value = '';
-                }
-                return;
-            }
-
-            this.hata = '';
-            this.form.dekont = dosya;
-        },
-
-        dekontTemizle() {
-            this.form.dekont = null;
-            if (this.$refs.dekontInput) {
-                this.$refs.dekontInput.value = '';
-            }
-        },
-
         async kaydet() {
             this.hata = '';
 
@@ -673,8 +686,9 @@ function tahsilatFormModal() {
                     }
                 }
 
-                if (!this.form.dekont) {
-                    this.hata = 'Dekont yuklemek zorunludur (PDF/JPG/JPEG/PNG/WEBP).';
+                // DİKKAT: Artık form.dekont yerine dosyalar dizisini kontrol ediyoruz.
+                if (this.dosyalar.length === 0) {
+                    this.hata = 'Lütfen en az bir dekont (PDF/JPG/PNG) ekleyin.';
                     return;
                 }
             }
@@ -710,8 +724,13 @@ function tahsilatFormModal() {
         },
 
         async olustur() {
+            this.kaydediliyorDurum = 'Dekontlar birleştiriliyor (PDF)...';
+            const finalDekont = await this.dekontlariBirlestir();
+
+            this.kaydediliyorDurum = 'Sunucuya gönderiliyor...';
             const normalizedTutar = this.toBackendAmount(this.form.tutar);
             const formData = new FormData();
+            
             formData.append('protokolsuz', this.form.protokolsuz ? '1' : '0');
             formData.append('protokol_id', this.form.protokol_id ?? '');
             formData.append('odeme_kalemi', this.form.odeme_kalemi ?? '');
@@ -722,7 +741,7 @@ function tahsilatFormModal() {
             formData.append('tutar', normalizedTutar ?? '');
             formData.append('tahsilat_yontemi', this.form.tahsilat_yontemi ?? '');
             formData.append('notlar', this.form.notlar ?? '');
-            formData.append('dekont', this.form.dekont);
+            formData.append('dekont', finalDekont);
 
             for (const birim of this.form.tahsilat_birimleri) {
                 formData.append('tahsilat_birimleri[]', birim);
@@ -740,7 +759,21 @@ function tahsilatFormModal() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                this.kapat();
+                const t = data.tahsilat;
+                const seciliKalem = this.protokolOdemeKalemleri().find(k => k.value === this.form.odeme_kalemi);
+                const taksitEtiketi = seciliKalem ? seciliKalem.label.split(' - ')[0] : 'Serbest / Peşinat';
+
+                this.basariData = {
+                    download_url: `/tahsilat/dekont/${t.dekontlar[0].id}/view`,
+                    borclu: t.borclu_adi,
+                    tckn: t.borclu_tckn_vkn,
+                    muvekkil: t.muvekkil ? t.muvekkil.ad : '-',
+                    portfoy: t.portfoy ? t.portfoy.ad : '-',
+                    tutar: this.formatPara(t.tutar),
+                    taksit: taksitEtiketi
+                };
+
+                this.basariModaliAcik = true;
                 window.dispatchEvent(new CustomEvent('tahsilat-listesi-yenile'));
                 window.dispatchEvent(new CustomEvent('protokol-listesi-yenile'));
                 return;
@@ -778,7 +811,8 @@ function tahsilatFormModal() {
                 throw new Error(data.error ?? ilkDogrulamaHatasi ?? (data.message ?? 'Bir hata oluştu.'));
             }
 
-            if (this.form.dekont) {
+            // Düzenleme modunda yeni dosya yüklendiyse, onları da birleştirip gönderelim
+            if (this.dosyalar.length > 0) {
                 await this.dekontYukle(this.duzenlenenTahsilatId);
             }
 
@@ -788,8 +822,11 @@ function tahsilatFormModal() {
         },
 
         async dekontYukle(tahsilatId) {
+            this.kaydediliyorDurum = 'Yeni dekontlar işleniyor...';
+            const finalDekont = await this.dekontlariBirlestir();
+            
             const formData = new FormData();
-            formData.append('dekont', this.form.dekont);
+            formData.append('dekont', finalDekont);
 
             const res = await fetch('/tahsilat/' + tahsilatId + '/dekont', {
                 method: 'POST',
@@ -807,9 +844,7 @@ function tahsilatFormModal() {
             let data = null;
             try {
                 data = await res.json();
-            } catch (e) {
-                // noop
-            }
+            } catch (e) {}
 
             throw new Error(data?.error ?? data?.message ?? 'Dekont yüklenemedi.');
         },
@@ -830,7 +865,6 @@ function tahsilatFormModal() {
                 tutar: '',
                 tahsilat_yontemi: '',
                 tahsilat_birimleri: [],
-                dekont: null,
                 notlar: '',
             };
             this.eslesenProtokoller = [];
@@ -838,10 +872,10 @@ function tahsilatFormModal() {
             this.hata = '';
             this.aramaYukleniyor = false;
             this.aramaCalisti = false;
-
-            if (this.$refs.dekontInput) {
-                this.$refs.dekontInput.value = '';
-            }
+            
+            // Temizlik işlemleri burada yapılıyor
+            this.dosyalar = []; 
+            this.basariModaliAcik = false;
         },
 
         formatPara(deger) {
@@ -851,79 +885,54 @@ function tahsilatFormModal() {
 
         formatDosyaBoyutu(byteDegeri) {
             const bytes = Number(byteDegeri ?? 0);
-            if (!Number.isFinite(bytes) || bytes <= 0) {
-                return '0 KB';
-            }
-            if (bytes < 1024) {
-                return bytes + ' B';
-            }
-            if (bytes < 1024 * 1024) {
-                return (bytes / 1024).toFixed(1) + ' KB';
-            }
+            if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         },
 
         formatAmountInput(rawValue) {
-            const cleaned = String(rawValue ?? '')
-                .replace(/\s+/g, '')
-                .replace(/[^\d,]/g, '');
-
-            if (cleaned === '') {
-                return '';
-            }
+            const cleaned = String(rawValue ?? '').replace(/\s+/g, '').replace(/[^\d,]/g, '');
+            if (cleaned === '') return '';
 
             const commaIndex = cleaned.indexOf(',');
             let whole = commaIndex >= 0 ? cleaned.slice(0, commaIndex) : cleaned;
             let decimal = commaIndex >= 0 ? cleaned.slice(commaIndex + 1).replace(/,/g, '') : '';
 
             whole = whole.replace(/^0+(?=\d)/, '');
-            if (whole === '') {
-                whole = '0';
-            }
+            if (whole === '') whole = '0';
+            
             const groupedWhole = this.groupThousands(whole);
 
-            if (commaIndex < 0) {
-                return groupedWhole;
-            }
-
+            if (commaIndex < 0) return groupedWhole;
+            
             decimal = decimal.slice(0, 2);
             return `${groupedWhole},${decimal}`;
         },
 
         formatAmountFromNumber(value) {
-            if (value === null || value === undefined || value === '') {
-                return '';
-            }
-
+            if (value === null || value === undefined || value === '') return '';
+            
             const amount = Number(value);
-            if (!Number.isFinite(amount)) {
-                return '';
-            }
+            if (!Number.isFinite(amount)) return '';
 
             const fixed = amount.toFixed(2);
             const [whole, decimal] = fixed.split('.');
             const groupedWhole = this.groupThousands(whole);
 
-            if (decimal === '00') {
-                return groupedWhole;
-            }
-
+            if (decimal === '00') return groupedWhole;
             return `${groupedWhole},${decimal}`;
         },
 
         groupThousands(value) {
             const digits = String(value ?? '').replace(/\D/g, '');
-            if (digits === '') {
-                return '';
-            }
+            if (digits === '') return '';
             return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         },
 
         parseAmount(value) {
             const raw = String(value ?? '').trim();
-            if (raw === '') {
-                return NaN;
-            }
+            if (raw === '') return NaN;
 
             const normalized = raw
                 .replace(/\./g, '')
@@ -931,9 +940,7 @@ function tahsilatFormModal() {
                 .replace(',', '.')
                 .replace(/[^0-9.]/g, '');
 
-            if (normalized === '' || normalized === '.') {
-                return NaN;
-            }
+            if (normalized === '' || normalized === '.') return NaN;
 
             const parsed = Number(normalized);
             return Number.isFinite(parsed) ? parsed : NaN;
@@ -941,12 +948,113 @@ function tahsilatFormModal() {
 
         toBackendAmount(value) {
             const parsed = this.parseAmount(value);
-            if (!Number.isFinite(parsed)) {
-                return null;
-            }
-
+            if (!Number.isFinite(parsed)) return null;
             return parsed.toFixed(2);
         },
+
+        dosyalariAl(event) {
+            this.surukleniyor = false;
+            const files = event.dataTransfer ? event.dataTransfer.files : event.target.files;
+            
+            for (let i = 0; i < files.length; i++) {
+                const dosya = files[i];
+                const uzanti = (dosya.name.split('.').pop() || '').toLowerCase();
+                
+                if (this.izinliDekontUzantilari.includes(uzanti)) {
+                    this.dosyalar.push(dosya);
+                } else {
+                    alert(`${dosya.name} desteklenmeyen bir format.`);
+                }
+            }
+        },
+
+        async dekontlariBirlestir(tahsilatData = null) {
+            this.kaydediliyorDurum = 'Dekontlar birleştiriliyor (PDF)...';
+            const { PDFDocument } = window.PDFLib;
+            const mergedPdf = await PDFDocument.create();
+
+            for (const dosya of this.dosyalar) {
+                const tip = dosya.type;
+                const uzanti = (dosya.name.split('.').pop() || '').toLowerCase();
+                const arrayBuffer = await dosya.arrayBuffer();
+
+                if (tip === 'application/pdf') {
+                    const pdf = await PDFDocument.load(arrayBuffer);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach((page) => mergedPdf.addPage(page));
+                } else if (tip.startsWith('image/') || ['tif', 'tiff', 'bmp'].includes(uzanti)) {
+                    
+                    try {
+                        const pngBuffer = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width; canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0);
+                                    canvas.toBlob((blob) => {
+                                        if (blob) {
+                                            blob.arrayBuffer().then(resolve);
+                                        } else {
+                                            reject(new Error("Canvas dönüşümü başarısız."));
+                                        }
+                                    }, 'image/png');
+                                };
+                                img.onerror = () => {
+                                    reject(new Error(`Tarayıcınız "${dosya.name}" (TIFF/Özel Format) dosyasını işleyemiyor. Lütfen bu dosyayı JPG, PNG veya PDF olarak yükleyin.`));
+                                };
+                                img.src = e.target.result;
+                            };
+                            reader.onerror = () => reject(new Error("Dosya okunamadı."));
+                            reader.readAsDataURL(dosya);
+                        });
+
+                        const image = await mergedPdf.embedPng(pngBuffer);
+                        const page = mergedPdf.addPage([595.28, 841.89]); // A4 Boyutu
+                        const dims = image.scaleToFit(550, 800); 
+                        page.drawImage(image, {
+                            x: (595.28 - dims.width) / 2,
+                            y: (841.89 - dims.height) / 2,
+                            width: dims.width, height: dims.height,
+                        });
+                    } catch (error) {
+                        alert(error.message);
+                        throw error; // Kaydetme işlemini durdur
+                    }
+                }
+            }
+
+            const pdfBytes = await mergedPdf.save();
+            
+            let dosyaIsmi = "Birlestirilmis_Dekont.pdf";
+            if (tahsilatData) {
+                const taksitNo = tahsilatData.tahsilat_turu?.odeme_kalemi?.taksit_id || 'Serbest';
+                dosyaIsmi = `${tahsilatData.id}_${tahsilatData.borclu_adi}_${tahsilatData.borclu_tckn_vkn}_${taksitNo}.pdf`.replace(/\s+/g, '-');
+            }
+
+            return new File([pdfBytes], dosyaIsmi, { type: 'application/pdf' });
+        },
+
+        whatsappKopyala() {
+    if (!this.basariData) return;
+    
+    const text = `*YENİ TAHSİLAT GİRİŞİ*
+        *Borçlu:* ${this.basariData.borclu}
+        *TCKN/VKN:* ${this.basariData.tckn ?? '-'}
+        *Müvekkil:* ${this.basariData.muvekkil}
+        *Portföy:* ${this.basariData.portfoy}
+        *Taksit/Durum:* ${this.basariData.taksit}
+        *Tutar:* ${this.basariData.tutar}
+
+        Makbuz sisteme yüklendi. İyi çalışmalar.`;
+    
+        navigator.clipboard.writeText(text).then(() => {
+            this.kopyalandi = true;
+            setTimeout(() => this.kopyalandi = false, 2000);
+        });
+    },
     };
 }
 </script>
