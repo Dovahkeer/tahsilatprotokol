@@ -34,6 +34,7 @@ class YetkiService
                     'ad' => $user->name,
                     'email' => $user->email,
                     'yonetici' => $user->isAdmin(),
+                    'aktif' => (bool) $user->aktif, // <-- BU SATIRI EKLE
                     'tahsilat_olusturabilir' => (bool) $yetki->tahsilat_olusturabilir || $user->isAdmin(),
                     'protokol_olusturabilir' => (bool) $yetki->protokol_olusturabilir || $user->isAdmin(),
                     'protokol_duzenleyebilir' => (bool) $yetki->protokol_duzenleyebilir || $user->isAdmin(),
@@ -102,6 +103,11 @@ class YetkiService
 
     public function updateUserPermissions(User $user, array $payload): TahsilatYetkiliKullanici
     {
+        // 1. User tablosundaki aktif durumunu güncelle
+        if (isset($payload['aktif'])) {
+            $user->update(['aktif' => (bool) $payload['aktif']]);
+        }
+
         return TahsilatYetkiliKullanici::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -146,14 +152,20 @@ class YetkiService
                     'alt_kademe' => $row['alt_kademe'],
                 ]);
 
-                $old = $model->exists ? $model->toArray() : null;
+                $isNew = !$model->exists;
+                $old = $isNew ? null : $model->toArray();
+                
                 $model->fill($row);
-                $model->save();
 
-                $this->audit('kademe_pay_orani', $model->wasRecentlyCreated ? 'create' : 'update', [
-                    'ust_kademe' => $row['ust_kademe'],
-                    'alt_kademe' => $row['alt_kademe'],
-                ], $old, $model->toArray(), $actor);
+                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
+                if ($model->isDirty() || $isNew) {
+                    $model->save();
+
+                    $this->audit('kademe_pay_orani', $isNew ? 'create' : 'update', [
+                        'ust_kademe' => $row['ust_kademe'],
+                        'alt_kademe' => $row['alt_kademe'],
+                    ], $old, $model->toArray(), $actor);
+                }
             }
         });
     }
@@ -167,14 +179,20 @@ class YetkiService
                     'asama_no' => $row['asama_no'],
                 ]);
 
-                $old = $model->exists ? $model->toArray() : null;
+                $isNew = !$model->exists;
+                $old = $isNew ? null : $model->toArray();
+                
                 $model->fill($row);
-                $model->save();
 
-                $this->audit('kademe_prim_asama_orani', $model->wasRecentlyCreated ? 'create' : 'update', [
-                    'kademe' => $row['kademe'],
-                    'asama_no' => $row['asama_no'],
-                ], $old, $model->toArray(), $actor);
+                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
+                if ($model->isDirty() || $isNew) {
+                    $model->save();
+
+                    $this->audit('kademe_prim_asama_orani', $isNew ? 'create' : 'update', [
+                        'kademe' => $row['kademe'],
+                        'asama_no' => $row['asama_no'],
+                    ], $old, $model->toArray(), $actor);
+                }
             }
         });
     }
@@ -184,15 +202,41 @@ class YetkiService
         DB::transaction(function () use ($rows, $actor) {
             foreach ($rows as $row) {
                 $hacizci = Hacizci::query()->findOrFail($row['hacizci_id']);
-                $old = $hacizci->only(['kademe']);
+                
+                // Aktiflik durumunu da loga dahil ediyoruz
+                $old = $hacizci->only(['kademe', 'aktif']);
 
-                $hacizci->update(['kademe' => $row['kademe']]);
+                $hacizci->fill([
+                    'kademe' => $row['kademe'],
+                    'aktif' => $row['aktif'] ?? true, // Arayüzden gelen toggle
+                ]);
 
-                $this->audit('hacizci_kademe', 'update', [
-                    'hacizci_id' => $hacizci->id,
-                ], $old, $hacizci->only(['kademe']), $actor);
+                // SADECE DEĞİŞİKLİK VARSA KAYDET VE LOGLA
+                if ($hacizci->isDirty()) {
+                    $hacizci->save();
+
+                    $this->audit('hacizci_kademe', 'update', [
+                        'hacizci_id' => $hacizci->id,
+                    ], $old, $hacizci->only(['kademe', 'aktif']), $actor);
+                }
             }
         });
+    }
+
+    public function createHacizci(array $data, User $actor): void
+    {
+        // 1. Yeni hacizciyi oluştur (varsayılan olarak aktif: true yapıyoruz)
+        $hacizci = Hacizci::query()->create([
+            'ad_soyad' => $data['ad_soyad'],
+            'sicil_no' => $data['sicil_no'] ?? null,
+            'kademe' => $data['kademe'],
+            'aktif' => true, 
+        ]);
+
+        // 2. Sistemin tarihçesi (Audit) için bunu logla
+        $this->audit('hacizci_kademe', 'create', [
+            'hacizci_id' => $hacizci->id,
+        ], null, $hacizci->only(['kademe', 'aktif']), $actor);
     }
 
     public function updateMuvekkilOranlari(array $rows, User $actor): void
@@ -203,13 +247,19 @@ class YetkiService
                     'muvekkil_id' => $row['muvekkil_id'],
                 ]);
 
-                $old = $model->exists ? $model->toArray() : null;
+                $isNew = !$model->exists;
+                $old = $isNew ? null : $model->toArray();
+                
                 $model->fill($row);
-                $model->save();
 
-                $this->audit('muvekkil_genel_prim_orani', $model->wasRecentlyCreated ? 'create' : 'update', [
-                    'muvekkil_id' => $row['muvekkil_id'],
-                ], $old, $model->toArray(), $actor);
+                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
+                if ($model->isDirty() || $isNew) {
+                    $model->save();
+
+                    $this->audit('muvekkil_genel_prim_orani', $isNew ? 'create' : 'update', [
+                        'muvekkil_id' => $row['muvekkil_id'],
+                    ], $old, $model->toArray(), $actor);
+                }
             }
         });
     }
@@ -224,5 +274,59 @@ class YetkiService
             'yeni_deger' => $yeni,
             'changed_by' => $actor->id,
         ]);
+    }
+
+    public function createKademe(array $data, User $actor): void
+    {
+        DB::transaction(function () use ($data, $actor) {
+            // 1. Yeni Kademeyi Ekle (Örn: kademe_4)
+            $yeniKademeKey = 'kademe_' . $data['kademe_no'];
+            
+            // Eğer bu kademe zaten varsa işlemi durdur
+            if (PrimKademe::query()->where('kademe', $yeniKademeKey)->exists()) {
+                throw ValidationException::withMessages(['kademe' => 'Bu kademe numarası zaten mevcut!']);
+            }
+
+            $kademeModel = PrimKademe::query()->create([
+                'kademe' => $yeniKademeKey,
+                'kademe_adi' => 'Kademe ' . $data['kademe_no'],
+                'varsayilan_prim_orani' => $data['varsayilan_prim_orani'] ?? 0,
+                'aktif' => true,
+            ]);
+
+            // 2. MATRİSİ OTOMATİK DOLDUR (%50 - %50)
+            $mevcutKademeler = PrimKademe::query()->where('id', '!=', $kademeModel->id)->get();
+            foreach ($mevcutKademeler as $mevcut) {
+                $mevcutNo = (int) str_replace('kademe_', '', $mevcut->kademe);
+                $yeniNo = (int) $data['kademe_no'];
+
+                // Küçük numara üst kademedir kuralı (Örn: Kademe 1 üst, Kademe 4 alttır)
+                $ust = $mevcutNo < $yeniNo ? $mevcut->kademe : $yeniKademeKey;
+                $alt = $mevcutNo < $yeniNo ? $yeniKademeKey : $mevcut->kademe;
+
+                PrimKademePayOrani::query()->firstOrCreate([
+                    'ust_kademe' => $ust,
+                    'alt_kademe' => $alt,
+                ], [
+                    'ust_kademe_orani' => 50,
+                    'alt_kademe_orani' => 50,
+                    'aktif' => true,
+                ]);
+            }
+
+            // 3. ZORUNLU 3 AŞAMAYI OTOMATİK OLUŞTUR (0 TL ile)
+            for ($i = 1; $i <= 3; $i++) {
+                PrimKademeAsamasi::query()->create([
+                    'kademe' => $yeniKademeKey,
+                    'asama_no' => $i,
+                    'esik_tutari' => 0,
+                    'prim_orani' => 0,
+                    'aktif' => true,
+                ]);
+            }
+
+            // Audit
+            $this->audit('prim_kademeler', 'create', ['kademe' => $yeniKademeKey], null, $kademeModel->toArray(), $actor);
+        });
     }
 }
