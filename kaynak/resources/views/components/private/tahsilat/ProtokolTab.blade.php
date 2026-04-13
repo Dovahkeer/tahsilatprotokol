@@ -118,7 +118,6 @@
                 </div>
 
                 <div class="ml-auto flex items-center gap-1.5">
-                    {{-- YENİ: Vade Takip Butonu --}}
                     <button @click="vadeTakipAc()"
                         class="h-9 px-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors whitespace-nowrap inline-flex items-center gap-1.5 shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,7 +207,6 @@
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.portfoy?.ad ?? '-'"></td>
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.borclu_adi"></td>
                         <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 font-mono" x-text="p.borclu_tckn_vkn ?? '-'"></td>
-                        {{-- YENİ EKLENEN SATIR BURASI --}}
                         <td class="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-400 whitespace-normal min-w-[200px] max-w-[250px] leading-relaxed" 
                             x-text="p.hacizciler && p.hacizciler.length > 0 ? p.hacizciler.map(h => h.ad_soyad).join(', ') : '-'">
                         </td>
@@ -255,18 +253,34 @@
         </table>
     </div>
 
-    <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-        x-show="!yukleniyor && sayfalama.last_page > 1">
-        <div class="text-xs text-gray-500" x-text="sayfalamaBilgisi()"></div>
-        <div class="flex items-center gap-2">
+    {{-- Modern Sayfalama (Pagination) Barı --}}
+    <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        x-show="!yukleniyor && sayfalama.last_page > 1" x-cloak>
+        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="sayfalamaBilgisi()"></div>
+
+        <div class="flex items-center justify-center gap-1">
+            {{-- Önceki Butonu --}}
             <button @click="oncekiSayfa()" :disabled="sayfalama.current_page <= 1"
-                class="h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 disabled:opacity-40">
-                Önceki
+                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <span class="text-xs text-gray-600 dark:text-gray-300" x-text="sayfalama.current_page + ' / ' + sayfalama.last_page"></span>
+
+            {{-- Sayfa Numaraları --}}
+            <template x-for="(sayfa, index) in sayfalar()" :key="index">
+                <button @click="gitSayfa(sayfa)"
+                    :disabled="sayfa === '...'"
+                    :class="sayfa === sayfalama.current_page 
+                        ? 'bg-amber-600 border-amber-600 text-white shadow-sm' 
+                        : (sayfa === '...' ? 'border-transparent text-gray-400 cursor-default' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm')"
+                    class="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-lg border text-xs font-medium transition-colors"
+                    x-text="sayfa">
+                </button>
+            </template>
+
+            {{-- Sonraki Butonu --}}
             <button @click="sonrakiSayfa()" :disabled="sayfalama.current_page >= sayfalama.last_page"
-                class="h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 disabled:opacity-40">
-                Sonraki
+                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
         </div>
     </div>
@@ -777,14 +791,38 @@ function protokolTab() {
 
         oncekiSayfa() {
             if (this.sayfalama.current_page > 1) {
-                this.yukle(this.sayfalama.current_page - 1);
+                this.yukle(Number(this.sayfalama.current_page) - 1);
             }
         },
 
         sonrakiSayfa() {
             if (this.sayfalama.current_page < this.sayfalama.last_page) {
-                this.yukle(this.sayfalama.current_page + 1);
+                this.yukle(Number(this.sayfalama.current_page) + 1);
             }
+        },
+
+        sayfalar() {
+            const p = [];
+            const current = Number(this.sayfalama.current_page);
+            const last = Number(this.sayfalama.last_page);
+
+            if (last <= 7) {
+                for (let i = 1; i <= last; i++) p.push(i);
+            } else {
+                if (current <= 4) {
+                    p.push(1, 2, 3, 4, 5, '...', last);
+                } else if (current >= last - 3) {
+                    p.push(1, '...', last - 4, last - 3, last - 2, last - 1, last);
+                } else {
+                    p.push(1, '...', current - 1, current, current + 1, '...', last);
+                }
+            }
+            return p;
+        },
+
+        gitSayfa(page) {
+            if (page === '...' || page === this.sayfalama.current_page) return;
+            this.yukle(Number(page));
         },
 
         sayfalamaBilgisi() {
@@ -821,12 +859,7 @@ function protokolTab() {
         },
 
         vadeCiktiAl(listeTipi, format) {
-            // listeTipi: 'gecikmis', 'bugun', 'yaklasan'
-            // format: 'pdf', 'excel'
-            
             const url = `/tahsilat/export/vade-takip?tip=${listeTipi}&format=${format}`;
-            
-            // Tarayıcıya "Git ve bu dosyayı indir" talimatı veriyoruz
             window.open(url, '_blank');
         },
 
@@ -875,7 +908,3 @@ function protokolTab() {
     };
 }
 </script>
-
-
-
-
