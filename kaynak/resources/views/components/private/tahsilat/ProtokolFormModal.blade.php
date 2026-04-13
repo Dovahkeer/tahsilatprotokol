@@ -170,21 +170,29 @@
                 </div>
             </div>
 
-            {{-- Hacizciler --}}
+            {{-- Hacizciler ve Akıllı Dağıtım --}}
             <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div class="flex items-center justify-between mb-3">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Hacizciler <span class="text-red-500">*</span></label>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Hacizciler ve Pay Dağılımı <span class="text-red-500">*</span></label>
                     <button type="button" @click="hacizciEkle()"
                         class="text-xs text-amber-600 hover:text-amber-700 font-medium">+ Hacizci Ekle</button>
                 </div>
-                <div x-show="manuelPayZorunlu()" class="mb-2 px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-700 dark:text-amber-300">
-                    Pay oranlarını manuel olarak giriniz. Toplam oran 100 olmalıdır. Şu anki Toplam:
-                    <span class="font-semibold" x-text="oranToplami().toFixed(2) + '%' "></span>
+                
+                {{-- YENİ: Akıllı Dağıtım Bilgi Kutucuğu --}}
+                <div x-show="form.hacizciler.length > 0" class="mb-3 px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 shadow-sm">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <span class="font-bold">Akıllı Dağıtım Aktif:</span> Sistem seçtiğiniz haciz türleri (İstihkak, 97, Nam-ı Müstear vb.) ve personel kademelerine göre oranları <strong>otomatik</strong> hesaplar. 
+                            <br><span class="opacity-80">Özel bir durum varsa hesaplanan oranlara tıklayıp manuel değiştirebilirsiniz. (Şu anki Toplam Pay: <span class="font-bold" x-text="oranToplami().toFixed(2) + '%'"></span>)</span>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="space-y-2">
                     <template x-for="(h, i) in form.hacizciler" :key="i">
                         <div class="flex items-center gap-2 mb-2">
-                            <select x-model="h.hacizci_id" required
+                            <select x-model="h.hacizci_id" @change="paylariOtomatikDagit()" required
                                 class="flex-1 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
                                 <option value="">- Hacizci Seçin -</option>
                                 <template x-for="hc in hacizciler" :key="hc.id">
@@ -192,7 +200,7 @@
                                 </template>
                             </select>
 
-                            <select x-model="h.haciz_turu" required
+                            <select x-model="h.haciz_turu" @change="paylariOtomatikDagit()" required
                                 class="w-36 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
                                 <option value="">- Haciz Türü -</option>
                                 <option value="istihkakli">İstihkaklı</option>
@@ -202,14 +210,13 @@
                                 <option value="sulhen">Sulhen</option>
                             </select>
 
+                            {{-- YENİ: step="0.01" özelliği eklendi, küsurata izin veriliyor --}}
                             <input type="number" x-model="h.pay_orani"
-                                :required="manuelPayZorunlu()"
-                                :disabled="!manuelPayZorunlu()"
-                                min="0" max="100" step="0.01" placeholder="Pay %"
-                                class="w-24 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs disabled:opacity-50">
+                                required
+                                min="0" step="0.01" placeholder="Pay %"
+                                class="w-24 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
 
-                                {{-- YENİ EKLENEN SİLME BUTONU --}}
-                            <button type="button" @click="form.hacizciler.splice(i, 1)"
+                            <button type="button" @click="form.hacizciler.splice(i, 1); paylariOtomatikDagit()"
                                 class="text-red-400 hover:text-red-600 flex-shrink-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -317,6 +324,7 @@ function protokolFormModal() {
     return {
         acik: false,
         duzenlemeModu: false,
+        _ilkYukleme: false, // Düzenlemede oranların ezilmesini önler
         duzenlenenProtokolId: null,
         kaydediliyor: false,
         hata: '',
@@ -324,6 +332,7 @@ function protokolFormModal() {
         muvekkiller: [],
         portfoyler: [],
         hacizciler: [],
+        kademePayOranlari: [], // Matris için eklendi
         portfoyYukleniyor: false,
 
         form: {
@@ -351,7 +360,8 @@ function protokolFormModal() {
             this.resetForm();
             await Promise.all([
                 this.muvekkillerYukle(),
-                this.hacizcilerYukle()
+                this.hacizcilerYukle(),
+                this.primAyarlariYukle() // Matrisi Çek
             ]);
         },
 
@@ -361,15 +371,18 @@ function protokolFormModal() {
 
             this.acik = true;
             this.duzenlemeModu = true;
+            this._ilkYukleme = true; // DB'den gelen oranları koru
             this.duzenlenenProtokolId = id;
             this.resetForm();
 
             await Promise.all([
                 this.muvekkillerYukle(),
-                this.hacizcilerYukle()
+                this.hacizcilerYukle(),
+                this.primAyarlariYukle() // Matrisi Çek
             ]);
 
             await this.protokolDetayYukle(id);
+            this._ilkYukleme = false; // Sonra serbest bırak
         },
 
         kapat() {
@@ -399,6 +412,19 @@ function protokolFormModal() {
             };
             this.portfoyler = [];
             this.hata = '';
+        },
+
+        // YENİ: Kademe Matrisini Arka Plandan Çek
+        async primAyarlariYukle() {
+            try {
+                const res = await fetch('/tahsilat/yetki/prim-ayarlar', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (res.ok) {
+                    const data = await res.json();
+                    this.kademePayOranlari = data.kademe_pay_oranlari ?? [];
+                }
+            } catch (e) {
+                // sessizce geç
+            }
         },
 
         async muvekkillerYukle() {
@@ -450,11 +476,10 @@ function protokolFormModal() {
                     }
                 }
 
-                // HİLE BAŞLIYOR: Alpine'i kandırmak için ID'leri başta boş gönderiyoruz
                 const doldurulacakHacizciler = Array.isArray(protokol.hacizciler)
                     ? protokol.hacizciler.map((h) => ({
-                        hacizci_id: '', // Bilerek boş bırakıyoruz ki seçenekler çizilmeden hata vermesin
-                        _gercek_id: String(h.id), // Asıl ID'yi kenara gizlice not alıyoruz
+                        hacizci_id: '', 
+                        _gercek_id: String(h.id), 
                         haciz_turu: this.normalizeHacizTuru(h?.pivot?.haciz_turu ?? ''),
                         pay_orani: h?.pivot?.pay_orani ?? '',
                     }))
@@ -485,8 +510,6 @@ function protokolFormModal() {
                     pdf_dosya: null,
                 };
 
-                // HTML TAMAMEN ÇİZİLDİ, <option> etiketleri yerine oturdu!
-                // Şimdi kenara not aldığımız asıl ID'leri kutulara 1 milisaniye sonra yerleştiriyoruz!
                 this.$nextTick(() => {
                     this.form.hacizciler.forEach(h => {
                         h.hacizci_id = h._gercek_id;
@@ -554,6 +577,115 @@ function protokolFormModal() {
             }
         },
 
+        // ==========================================
+        // YENİ: AKILLI PAY DAĞITIM MOTORU (RULE ENGINE)
+        // ==========================================
+        paylariOtomatikDagit() {
+            // Düzenleme modunda ilk açılışta DB'deki veriyi ezmesini engelle
+            if (this.duzenlemeModu && this._ilkYukleme) return;
+
+            const seciliTurler = this.form.hacizciler.map(h => h.haciz_turu).filter(Boolean);
+            
+            // İhtiyati'yi senaryo analizi için İstihkaklı gibi sayıyoruz
+            const normalizeTurler = seciliTurler.map(t => t === 'ihtiyati' ? 'istihkakli' : t);
+            const benzersizTurler = [...new Set(normalizeTurler)];
+
+            // 1. HAVUZLARI (Senaryo Dağılımlarını) BELİRLE
+            let havuz = {};
+            let ozelDurum = false; // 3 ve daha fazla benzersiz veya bilinmeyen kombinasyon
+
+            if (benzersizTurler.length === 1) {
+                const tur = benzersizTurler[0];
+                havuz[tur] = 100;
+            } 
+            else if (benzersizTurler.includes('istihkakli') && benzersizTurler.includes('97') && benzersizTurler.length === 2) {
+                havuz['istihkakli'] = 50;
+                havuz['97'] = 50;
+            } 
+            else if (benzersizTurler.includes('istihkakli') && benzersizTurler.includes('nami_mustear')) {
+                havuz['istihkakli'] = 32.5;
+                havuz['nami_mustear'] = 32.5;
+                if (benzersizTurler.includes('97')) havuz['97'] = 0; // 97 Nam-ı Müstear senaryosunda 0 çeker
+            } 
+            else if (benzersizTurler.includes('istihkakli') && benzersizTurler.includes('sulhen') && benzersizTurler.length === 2) {
+                havuz['istihkakli'] = 50;
+                havuz['sulhen'] = 50;
+            } 
+            else {
+                ozelDurum = true; // Sistemin tanımadığı karmaşık kombinasyon -> Manuel müdahaleye bırak
+            }
+
+            // 2. KİŞİLERİ GRUPLA
+            const gruplar = {};
+            this.form.hacizciler.forEach(h => {
+                if (!h.hacizci_id || !h.haciz_turu) return;
+                // Gerçek türü grupla (ihtiyati ise onu tut)
+                const analizTuru = h.haciz_turu === 'ihtiyati' ? 'istihkakli' : h.haciz_turu;
+                if (!gruplar[analizTuru]) gruplar[analizTuru] = [];
+                gruplar[analizTuru].push(h);
+            });
+
+            // 3. DAĞITIMI YAP (Kademe Matrisine Göre)
+            for (const tur in gruplar) {
+                const kisiler = gruplar[tur];
+                const ayrilanPay = havuz[tur] !== undefined ? havuz[tur] : null;
+
+                // Havuz yoksa, karmaşık senaryoysa veya bir türde 3'ten fazla kişi varsa DOKUNMA
+                if (ayrilanPay === null || ozelDurum || kisiler.length >= 3) {
+                    continue; 
+                }
+
+                if (kisiler.length === 1) {
+                    kisiler[0].pay_orani = ayrilanPay.toString(); // Tek kişiyse havuzun tümünü alır
+                } 
+                else if (kisiler.length === 2) {
+                    const k1 = kisiler[0];
+                    const k2 = kisiler[1];
+
+                    const h1_data = this.hacizciler.find(x => String(x.id) === String(k1.hacizci_id));
+                    const h2_data = this.hacizciler.find(x => String(x.id) === String(k2.hacizci_id));
+
+                    const kademe1 = h1_data?.kademe;
+                    const kademe2 = h2_data?.kademe;
+
+                    if (kademe1 && kademe2) {
+                        if (kademe1 === kademe2) {
+                            // Aynı kademe -> %50 %50
+                            k1.pay_orani = (ayrilanPay / 2).toFixed(2);
+                            k2.pay_orani = (ayrilanPay / 2).toFixed(2);
+                        } else {
+                            // Kademe Farklı -> Matristen Çek
+                            const kural1 = this.kademePayOranlari.find(p => p.ust_kademe === kademe1 && p.alt_kademe === kademe2);
+                            const kural2 = this.kademePayOranlari.find(p => p.ust_kademe === kademe2 && p.alt_kademe === kademe1);
+
+                            if (kural1) {
+                                k1.pay_orani = ((ayrilanPay * Number(kural1.ust_kademe_orani)) / 100).toFixed(2);
+                                k2.pay_orani = ((ayrilanPay * Number(kural1.alt_kademe_orani)) / 100).toFixed(2);
+                            } else if (kural2) {
+                                k2.pay_orani = ((ayrilanPay * Number(kural2.ust_kademe_orani)) / 100).toFixed(2);
+                                k1.pay_orani = ((ayrilanPay * Number(kural2.alt_kademe_orani)) / 100).toFixed(2);
+                            } else {
+                                // Matris kuralı unutulmuşsa mecburen %50-%50
+                                k1.pay_orani = (ayrilanPay / 2).toFixed(2);
+                                k2.pay_orani = (ayrilanPay / 2).toFixed(2);
+                            }
+                        }
+                    } else {
+                         // Kademesi belli değilse
+                         k1.pay_orani = (ayrilanPay / 2).toFixed(2);
+                         k2.pay_orani = (ayrilanPay / 2).toFixed(2);
+                    }
+                }
+            }
+
+            // Görüntü kirliliğini önle (.00 sil)
+            this.form.hacizciler.forEach(h => {
+                 if(h.pay_orani && h.pay_orani.endsWith('.00')) {
+                     h.pay_orani = Number(h.pay_orani).toString();
+                 }
+            });
+        },
+
         async kaydet() {
             this.hata = '';
 
@@ -562,7 +694,6 @@ function protokolFormModal() {
                     this.hata = 'Muhatap adı zorunludur.';
                     return;
                 }
-
                 if (!String(this.form.muhatap_telefon ?? '').trim()) {
                     this.hata = 'Muhatap telefonu zorunludur.';
                     return;
@@ -590,25 +721,10 @@ function protokolFormModal() {
                     this.hata = 'Tüm hacizciler için hacizci ve haciz türü seçilmelidir.';
                     return;
                 }
-            }
-
-            if (this.manuelPayZorunlu()) {
-                for (const h of this.form.hacizciler) {
-                    const oran = this.parseOran(h.pay_orani);
-                    if (h.pay_orani === '' || h.pay_orani === null || !Number.isFinite(oran)) {
-                        this.hata = '3 hacizcili protokolde tüm manuel pay oranları zorunludur.';
-                        return;
-                    }
-
-                    if (oran < 0 || oran > 100) {
-                        this.hata = 'Pay oranları 0 ile 100 arasında olmalıdır.';
-                        return;
-                    }
-                }
-
-                const toplam = this.oranToplami();
-                if (Math.abs(toplam - 100) > 0.01) {
-                    this.hata = '3 hacizcili protokolde pay oranları toplamı 100 olmalıdır.';
+                // YENİ: Toplam oran limitini kaldırdık ancak her birinin oranının girildiğinden emin oluyoruz
+                const oran = this.parseOran(h.pay_orani);
+                if (h.pay_orani === '' || h.pay_orani === null || !Number.isFinite(oran)) {
+                    this.hata = 'Tüm hacizciler için pay oranı girilmelidir.';
                     return;
                 }
             }
@@ -655,7 +771,7 @@ function protokolFormModal() {
                     hacizciler: this.form.hacizciler.map((h) => ({
                         hacizci_id: h.hacizci_id,
                         haciz_turu: h.haciz_turu,
-                        pay_orani: this.manuelPayZorunlu() ? this.parseOran(h.pay_orani) : null,
+                        pay_orani: this.parseOran(h.pay_orani),
                     })),
                 };
 
@@ -724,19 +840,13 @@ function protokolFormModal() {
             }
         },
 
-        manuelPayZorunlu() {
-            return this.form.hacizciler.length >= 1;
-        },
-
         parseOran(value) {
             const parsed = parseFloat(value);
             return Number.isFinite(parsed) ? parsed : NaN;
         },
 
         normalizeHacizTuru(value) {
-            if (!value || typeof value !== 'string') {
-                return '';
-            }
+            if (!value || typeof value !== 'string') return '';
 
             const normalized = value
                 .toLocaleLowerCase('tr-TR')
@@ -749,15 +859,11 @@ function protokolFormModal() {
             if (normalized === 'nami_mustear') return 'nami_mustear';
             if (normalized === '97') return '97';
             if (normalized === 'ihtiyati') return 'ihtiyati';
-            if (normalized === 'sulhen') return 'sulhen'; // <-- İŞTE BU SATIRI EKLE
+            if (normalized === 'sulhen') return 'sulhen';
             return '';
         },
 
         oranToplami() {
-            if (!this.manuelPayZorunlu()) {
-                return 0;
-            }
-
             return this.form.hacizciler.reduce((toplam, h) => {
                 const oran = this.parseOran(h.pay_orani);
                 return toplam + (Number.isFinite(oran) ? oran : 0);
@@ -765,67 +871,48 @@ function protokolFormModal() {
         },
 
         formatAmountInput(rawValue) {
-            const cleaned = String(rawValue ?? '')
-                .replace(/\s+/g, '')
-                .replace(/[^\d,]/g, '');
-
-            if (cleaned === '') {
-                return '';
-            }
+            const cleaned = String(rawValue ?? '').replace(/\s+/g, '').replace(/[^\d,]/g, '');
+            if (cleaned === '') return '';
 
             const commaIndex = cleaned.indexOf(',');
             let whole = commaIndex >= 0 ? cleaned.slice(0, commaIndex) : cleaned;
             let decimal = commaIndex >= 0 ? cleaned.slice(commaIndex + 1).replace(/,/g, '') : '';
 
             whole = whole.replace(/^0+(?=\d)/, '');
-            if (whole === '') {
-                whole = '0';
-            }
+            if (whole === '') whole = '0';
+            
             const groupedWhole = this.groupThousands(whole);
 
-            if (commaIndex < 0) {
-                return groupedWhole;
-            }
+            if (commaIndex < 0) return groupedWhole;
 
             decimal = decimal.slice(0, 2);
             return `${groupedWhole},${decimal}`;
         },
 
         formatAmountFromNumber(value) {
-            if (value === null || value === undefined || value === '') {
-                return '';
-            }
+            if (value === null || value === undefined || value === '') return '';
 
             const amount = Number(value);
-            if (!Number.isFinite(amount)) {
-                return '';
-            }
+            if (!Number.isFinite(amount)) return '';
 
             const fixed = amount.toFixed(2);
             const [whole, decimal] = fixed.split('.');
             const groupedWhole = this.groupThousands(whole);
 
-            if (decimal === '00') {
-                return groupedWhole;
-            }
+            if (decimal === '00') return groupedWhole;
 
             return `${groupedWhole},${decimal}`;
         },
 
         groupThousands(value) {
             const digits = String(value ?? '').replace(/\D/g, '');
-            if (digits === '') {
-                return '';
-            }
-
+            if (digits === '') return '';
             return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         },
 
         parseAmount(value) {
             const raw = String(value ?? '').trim();
-            if (raw === '') {
-                return NaN;
-            }
+            if (raw === '') return NaN;
 
             const normalized = raw
                 .replace(/\./g, '')
@@ -833,9 +920,7 @@ function protokolFormModal() {
                 .replace(',', '.')
                 .replace(/[^0-9.]/g, '');
 
-            if (normalized === '' || normalized === '.') {
-                return NaN;
-            }
+            if (normalized === '' || normalized === '.') return NaN;
 
             const parsed = Number(normalized);
             return Number.isFinite(parsed) ? parsed : NaN;
@@ -843,10 +928,7 @@ function protokolFormModal() {
 
         toBackendAmount(value) {
             const parsed = this.parseAmount(value);
-            if (!Number.isFinite(parsed)) {
-                return null;
-            }
-
+            if (!Number.isFinite(parsed)) return null;
             return parsed.toFixed(2);
         },
     };
