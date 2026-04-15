@@ -143,7 +143,16 @@ class TahsilatService
 
     public function uploadDekont(Tahsilat $tahsilat, UploadedFile $dekont, User $user): TahsilatDekontu
     {
-        return DB::transaction(fn () => $this->storeDekont($tahsilat, $dekont, $user));
+        return DB::transaction(function () use ($tahsilat, $dekont, $user) {
+            
+            // YENİ: Eğer yeni dekont yükleniyorsa, kafa karışıklığını önlemek için eskileri sil (Üzerine Yaz)
+            foreach ($tahsilat->dekontlar as $eskiDekont) {
+                Storage::disk($eskiDekont->disk)->delete($eskiDekont->path);
+                $eskiDekont->delete();
+            }
+
+            return $this->storeDekont($tahsilat, $dekont, $user);
+        });
     }
 
     public function approve(Tahsilat $tahsilat, User $user): Tahsilat
