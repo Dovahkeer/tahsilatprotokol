@@ -132,8 +132,9 @@
 
                 <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex gap-2">
-                        <template x-for="dekont in (tahsilat.dekontlar ?? [])" :key="dekont.id">
-                            <button type="button" @click="dekontGoruntule(dekont, tahsilat)"
+                        {{-- Sadece ilk dekontu göster --}}
+                        <template x-if="tahsilat.dekontlar && tahsilat.dekontlar.length > 0">
+                            <button type="button" @click="dekontGoruntule(tahsilat.dekontlar[0], tahsilat)"
                                 class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium hover:bg-blue-100 transition-colors">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -180,6 +181,13 @@
                             </button>
                         </div>
                         @endif
+
+                        {{-- YENİ: RED VEYA İPTAL NEDENİNİ GÖRME BUTONU --}}
+                        <button x-show="tahsilat.onay_durumu === 'reddedildi' || tahsilat.onay_durumu === 'iptal'"
+                            @click="nedenModalAc(tahsilat)"
+                            class="px-2 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-[11px] font-medium transition-colors">
+                            Nedeni Gör
+                        </button>
                     </div>
                 </div>
             </div>
@@ -238,7 +246,21 @@
         </div>
     </div>
     </template>
-
+    {{-- Bilgi (Neden) Modalı --}}
+    <template x-teleport="body">
+    <div x-show="bilgiModal.acik" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-sm" @click="bilgiModal.acik = false"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div class="relative w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 bg-white p-6 shadow-2xl dark:bg-gray-800" @click.stop>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2" x-text="bilgiModal.baslik"></h3>
+            <div class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="bilgiModal.icerik || 'Neden belirtilmemiş.'"></div>
+            <div class="flex justify-end mt-4">
+                <button @click="bilgiModal.acik = false" class="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium transition-colors">Kapat</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    </template>
 </div>
 
 <script>
@@ -251,6 +273,7 @@ function tahsilatTakipTab() {
         filtre: { onay_durumu: '' },
         redModal: { acik: false, tahsilat: null, neden: '' },
         dekontModal: { acik: false, url: '', baslik: '' }, // YENİ EKLENEN KİLİT DEĞİŞKEN
+        bilgiModal: { acik: false, baslik: '', icerik: '' },
         tahsilatModal: false,
 
         get toplamKayitSayisi() {
@@ -321,6 +344,12 @@ function tahsilatTakipTab() {
 
         redModalAc(tahsilat) {
             this.redModal = { acik: true, tahsilat, neden: '' };
+        },
+
+        nedenModalAc(tahsilat) {
+            this.bilgiModal.baslik = tahsilat.onay_durumu === 'reddedildi' ? 'Red Nedeni' : 'İptal Nedeni';
+            this.bilgiModal.icerik = tahsilat.onay_durumu === 'reddedildi' ? tahsilat.red_nedeni : tahsilat.iptal_nedeni;
+            this.bilgiModal.acik = true;
         },
 
         dekontGoruntule(dekont, tahsilat) {
