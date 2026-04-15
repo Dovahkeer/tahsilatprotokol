@@ -41,9 +41,11 @@ class ProtokolService
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'aktif', fn ($q) => $q->where('aktif', true))
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'pasif', fn ($q) => $q->where('aktif', false));
 
-        match ($filters['siralama'] ?? 'protokol_tarihi_desc') {
+        match ($filters['siralama'] ?? 'protokol_no_desc') {
             'aylik_tutar_desc' => $query->orderByDesc('toplam_protokol_tutari'),
-            default => $query->orderByDesc('protokol_tarihi')->orderByDesc('id'),
+            'protokol_tarihi_desc' => $query->orderByDesc('protokol_tarihi')->orderByDesc('id'),
+            'protokol_no_desc' => $query->orderByDesc('id'), // Sisteme son eklenen en üstte
+            default => $query->orderByDesc('id'),
         };
 
         /** @var LengthAwarePaginator $paginator */

@@ -112,6 +112,7 @@
                 <div class="relative w-[130px] shrink-0">
                     <select x-model="filtre.siralama" @change="yukle(1)"
                         class="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-500/40">
+                        <option value="protokol_no_desc">Protokol No</option>  {{-- YENİ EKLENEN --}}
                         <option value="protokol_tarihi_desc">Tarihe Göre</option>
                         <option value="aylik_tutar_desc">Miktara Göre</option>
                     </select>
@@ -608,7 +609,7 @@ function protokolTab() {
             baslangic_tarihi: '',
             bitis_tarihi: '',
             aktif_durumu: 'aktif',
-            siralama: 'protokol_tarihi_desc',
+            siralama: 'protokol_no_desc', // <-- BURASI DEĞİŞTİ (Eskiden protokol_tarihi_desc idi)
         },
         taksitModal: { acik: false, protokol: null },
         pdfModal: { acik: false, protokol: null, url: '' },
@@ -783,7 +784,7 @@ function protokolTab() {
                 baslangic_tarihi: '',
                 bitis_tarihi: '',
                 aktif_durumu: 'aktif',
-                siralama: 'protokol_tarihi_desc',
+                siralama: 'protokol_no_desc', // <-- BURASI DEĞİŞTİ
             };
             this.applyPortfoySecenekleri();
             await this.yukle(1);
