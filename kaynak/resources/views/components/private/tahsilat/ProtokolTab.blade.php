@@ -119,8 +119,16 @@
                 </div>
 
                 <div class="ml-auto flex items-center gap-1.5">
+                    {{-- GÜNCELLENMİŞ: Dikkat Çeken Vade Takip Butonu --}}
                     <button @click="vadeTakipAc()"
-                        class="h-9 px-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors whitespace-nowrap inline-flex items-center gap-1.5 shadow-sm">
+                        class="relative inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-bold transition-all shadow-md hover:shadow-lg whitespace-nowrap overflow-hidden group">
+                        {{-- Parlama Animasyonu --}}
+                        <div class="absolute inset-0 w-full h-full bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -translate-x-full skew-x-12"></div>
+                        {{-- Nabız Atan Nokta --}}
+                        <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-white dark:bg-gray-800 border-2 border-rose-500"></span>
+                        </span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
@@ -208,8 +216,11 @@
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.portfoy?.ad ?? '-'"></td>
                         <td class="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400" x-text="p.borclu_adi"></td>
                         <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 font-mono" x-text="p.borclu_tckn_vkn ?? '-'"></td>
-                        <td class="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-400 whitespace-normal min-w-[200px] max-w-[250px] leading-relaxed" 
-                            x-text="p.hacizciler && p.hacizciler.length > 0 ? p.hacizciler.map(h => h.ad_soyad).join(', ') : '-'">
+                        {{-- GÜNCELLENMİŞ: Sağa Uzamayı Engelleyen Hacizci Kutusu --}}
+                        <td class="px-3 py-2.5 align-top">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 whitespace-normal w-full max-w-[220px] break-words leading-relaxed" 
+                                 x-text="p.hacizciler && p.hacizciler.length > 0 ? p.hacizciler.map(h => h.ad_soyad).join(', ') : '-'">
+                            </div>
                         </td>
                         <td class="px-3 py-2.5 text-sm text-right" x-text="formatPara(p.pesinat)"></td>
                         <td class="px-3 py-2.5 text-sm font-medium text-right">
