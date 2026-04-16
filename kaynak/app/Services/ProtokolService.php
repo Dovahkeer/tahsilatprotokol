@@ -29,22 +29,27 @@ class ProtokolService
         $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
         $ay = ! empty($filters['ay']) ? Carbon::parse($filters['ay'].'-01') : now();
 
-        $query = Protokol::query()
+        // 1. ADIM: Temel sorguyu (filtreleri) oluştur ama henüz veriyi çekme
+        $baseQuery = Protokol::query()
             ->with(['muvekkil', 'portfoy', 'taksitler', 'hacizciler'])
             ->when(! empty($filters['protokol_no']), fn ($q) => $q->where('protokol_no', 'like', '%'.$filters['protokol_no'].'%'))
             ->when(! empty($filters['muvekkil_ids']), fn ($q) => $q->whereIn('muvekkil_id', $filters['muvekkil_ids']))
             ->when(! empty($filters['portfoy_id']), fn ($q) => $q->where('portfoy_id', $filters['portfoy_id']))
-            // YENİ EKLENEN TARİH FİLTRELERİ BURADA
             ->when(! empty($filters['baslangic_tarihi']), fn ($q) => $q->whereDate('protokol_tarihi', '>=', $filters['baslangic_tarihi']))
             ->when(! empty($filters['bitis_tarihi']), fn ($q) => $q->whereDate('protokol_tarihi', '<=', $filters['bitis_tarihi']))
-            // AKTİF/PASİF FİLTRESİ DEVAM EDİYOR
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'aktif', fn ($q) => $q->where('aktif', true))
             ->when(($filters['aktif_durumu'] ?? 'aktif') === 'pasif', fn ($q) => $q->where('aktif', false));
+
+        // 2. ADIM: Sayfalamadan ÖNCE filtrelere uyan TÜM kayıtların genel özetini hesapla
+        $globalSummary = $this->calculateGlobalSummary(clone $baseQuery, $ay);
+
+        // 3. ADIM: Şimdi klonladığımız sorguyu sayfalamak için kullan
+        $query = clone $baseQuery;
 
         match ($filters['siralama'] ?? 'protokol_no_desc') {
             'aylik_tutar_desc' => $query->orderByDesc('toplam_protokol_tutari'),
             'protokol_tarihi_desc' => $query->orderByDesc('protokol_tarihi')->orderByDesc('id'),
-            'protokol_no_desc' => $query->orderByDesc('id'), // Sisteme son eklenen en üstte
+            'protokol_no_desc' => $query->orderByDesc('id'),
             default => $query->orderByDesc('id'),
         };
 
@@ -58,7 +63,7 @@ class ProtokolService
 
         return [
             'paginator' => $paginator,
-            'filtre_taksit_ozeti' => $this->buildFilterSummary($paginator->getCollection(), $ay),
+            'filtre_taksit_ozeti' => $globalSummary, // Artık sadece o sayfanın değil, GENEL TOPLAMI gönderiyoruz!
         ];
     }
 
@@ -412,4 +417,50 @@ class ProtokolService
 
         $protokol->hacizciler()->sync($syncPayload);
     }
+
+    private function calculateGlobalSummary(\Illuminate\Database\Eloquent\Builder $query, CarbonInterface $ay): array
+    {
+        $monthStart = $ay->copy()->startOfMonth()->toDateString();
+        $monthEnd = $ay->copy()->endOfMonth()->toDateString();
+        $today = now()->startOfDay();
+
+        // Ana sorgudan sadece Protokol ID'lerini alıyoruz (Belleği yormamak için)
+        $query->select('protokoller.id');
+
+        // Sadece filtrelenen protokollere ait ve o ay içindeki "tamamlanmamış" taksitleri veritabanından çek
+        $taksitler = ProtokolTaksit::query()
+            ->whereIn('protokol_id', $query)
+            ->whereBetween('taksit_tarihi', [$monthStart, $monthEnd])
+            ->whereRaw('odenen_tutar < taksit_tutari')
+            ->get(['protokol_id', 'taksit_tarihi', 'taksit_tutari', 'odenen_tutar']);
+
+        $toplamBeklenen = '0.00';
+        $toplamVadesiGecmis = '0.00';
+        $vadesiGecmisSayisi = 0;
+        $bekleyenProtokolIds = [];
+
+        foreach ($taksitler as $taksit) {
+            $kalan = Money::max(Money::sub($taksit->taksit_tutari, $taksit->odenen_tutar), '0');
+
+            if (Money::cmp($kalan, '0') === 1) {
+                $toplamBeklenen = Money::add($toplamBeklenen, $kalan);
+                $bekleyenProtokolIds[$taksit->protokol_id] = true;
+
+                // Vadesi bugün veya bugünden önce geçmişse
+                if (Carbon::parse($taksit->taksit_tarihi)->lt($today)) {
+                    $toplamVadesiGecmis = Money::add($toplamVadesiGecmis, $kalan);
+                    $vadesiGecmisSayisi++;
+                }
+            }
+        }
+
+        return [
+            'ozet_ay' => $ay->format('Y-m'),
+            'beklenen_taksit_toplami' => Money::float($toplamBeklenen),
+            'beklenen_protokol_sayisi' => count($bekleyenProtokolIds),
+            'vadesi_gecmis_taksit_sayisi' => $vadesiGecmisSayisi,
+            'vadesi_gecmis_taksit_toplami' => Money::float($toplamVadesiGecmis),
+        ];
+    }
+
 }

@@ -207,6 +207,35 @@
         </table>
     </div>
 
+    {{-- Modern Sayfalama (Pagination) Barı --}}
+    <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        x-show="!yukleniyor && sayfalama.last_page > 1" x-cloak>
+        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="sayfalamaBilgisi()"></div>
+
+        <div class="flex items-center justify-center gap-1">
+            <button @click="oncekiSayfa()" :disabled="sayfalama.current_page <= 1"
+                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <template x-for="(sayfa, index) in sayfalar()" :key="index">
+                <button @click="gitSayfa(sayfa)"
+                    :disabled="sayfa === '...'"
+                    :class="sayfa === sayfalama.current_page 
+                        ? 'bg-amber-600 border-amber-600 text-white shadow-sm' 
+                        : (sayfa === '...' ? 'border-transparent text-gray-400 cursor-default' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm')"
+                    class="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-lg border text-xs font-medium transition-colors"
+                    x-text="sayfa">
+                </button>
+            </template>
+
+            <button @click="sonrakiSayfa()" :disabled="sayfalama.current_page >= sayfalama.last_page"
+                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+
     <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" x-show="!yukleniyor && sayfalama.last_page > 1">
         <div class="text-xs text-gray-500" x-text="sayfalamaBilgisi()"></div>
         <div class="flex items-center gap-2">
