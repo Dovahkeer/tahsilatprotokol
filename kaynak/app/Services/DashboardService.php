@@ -64,6 +64,8 @@ class DashboardService
             ],
             'segment_izlence' => $this->buildSegmentStats($merged, $currentMonth, $previousMonth),
             'muvekkil_bazli_aylik_tahsilat' => $this->buildMonthlyClientTotals($merged, $currentMonth),
+            // YENİ EKLENEN GRAFİK VERİSİ
+            'grafik_verisi' => $this->buildChartData($approved, $currentMonth, $previousMonth, $twoMonthsAgo),
         ];
     }
 
@@ -355,5 +357,53 @@ class DashboardService
         }
 
         return null;
+    }
+
+    private function buildChartData(Collection $approved, CarbonInterface $currentMonth, CarbonInterface $previousMonth, CarbonInterface $twoMonthsAgo): array
+    {
+        $currentData = array_fill(1, 31, 0);
+        $previousData = array_fill(1, 31, 0);
+        $twoMonthsAgoData = array_fill(1, 31, 0);
+
+        $sumCurrent = '0.00';
+        $sumPrev = '0.00';
+        $sumTwoPrev = '0.00';
+
+        for ($day = 1; $day <= 31; $day++) {
+            // Bu Ay
+            if ($day <= $currentMonth->daysInMonth) {
+                $dailyCurrent = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($currentMonth) && $row['tahsilat_tarihi']->day === $day);
+                $sumCurrent = Money::add($sumCurrent, $this->sumRows($dailyCurrent));
+                // Eğer gün bugünden büyükse 0 basma, boş bırak (çizgi bugün kesilsin)
+                $currentData[$day] = ($currentMonth->isCurrentMonth() && $day > now()->day) ? null : (float) Money::float($sumCurrent);
+            } else {
+                $currentData[$day] = null;
+            }
+
+            // Geçen Ay
+            if ($day <= $previousMonth->daysInMonth) {
+                $dailyPrev = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($previousMonth) && $row['tahsilat_tarihi']->day === $day);
+                $sumPrev = Money::add($sumPrev, $this->sumRows($dailyPrev));
+                $previousData[$day] = (float) Money::float($sumPrev);
+            } else {
+                $previousData[$day] = (float) Money::float($sumPrev);
+            }
+
+            // 2 Ay Önce
+            if ($day <= $twoMonthsAgo->daysInMonth) {
+                $dailyTwoPrev = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($twoMonthsAgo) && $row['tahsilat_tarihi']->day === $day);
+                $sumTwoPrev = Money::add($sumTwoPrev, $this->sumRows($dailyTwoPrev));
+                $twoMonthsAgoData[$day] = (float) Money::float($sumTwoPrev);
+            } else {
+                $twoMonthsAgoData[$day] = (float) Money::float($sumTwoPrev);
+            }
+        }
+
+        return [
+            'labels' => range(1, 31),
+            'bu_ay' => array_values($currentData),
+            'gecen_ay' => array_values($previousData),
+            'iki_ay_once' => array_values($twoMonthsAgoData),
+        ];
     }
 }
