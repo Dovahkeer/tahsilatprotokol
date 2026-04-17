@@ -64,7 +64,6 @@ class DashboardService
             ],
             'segment_izlence' => $this->buildSegmentStats($merged, $currentMonth, $previousMonth),
             'muvekkil_bazli_aylik_tahsilat' => $this->buildMonthlyClientTotals($merged, $currentMonth),
-            // YENİ EKLENEN GRAFİK VERİSİ
             'grafik_verisi' => $this->buildChartData($approved, $currentMonth, $previousMonth, $twoMonthsAgo),
         ];
     }
@@ -139,7 +138,7 @@ class DashboardService
             'satirlar' => $rows->map(fn (array $row) => [
                 'muvekkil_id' => $row['muvekkil_id'],
                 'muvekkil_ad' => $row['muvekkil_ad'],
-                'bu_ay_vadesi_gelen_tutari' => $row['bu_ay_vadesi_gelen_tutari'],
+                'bu_ay_vadesi_gecmis_tutari' => $row['bu_ay_vadesi_gecmis_tutari'],
                 'bu_ay_vadesi_gelecek_tutari' => $row['bu_ay_vadesi_gelecek_tutari'],
                 'son_7_gun_vadesi_gecmis_tutari' => $row['son_7_gun_vadesi_gecmis_tutari'],
                 'toplam_beklenti_tutari' => $row['toplam_beklenti_tutari'],
@@ -161,10 +160,10 @@ class DashboardService
             ->groupBy('muvekkil_id')
             ->map(function (Collection $protokoller) use ($today, $start, $end, $sevenDaysAgo) {
                 $muvekkil = $protokoller->first()->muvekkil;
-                $gelen = '0.00';
-                $gelecek = '0.00';
-                $sonYedi = '0.00';
-                $toplam = '0.00';
+                $oluGecmis = '0.00'; // > 7 Gün Gecikenler (Beklentiden düşülen ölü/riskli para)
+                $gelecek = '0.00';   // >= Bugün
+                $sonYedi = '0.00';   // <= 7 Gün Gecikenler
+                $toplam = '0.00';    // Gelecek + Son 7 Gün
                 $detailRows = [];
 
                 foreach ($protokoller as $protokol) {
@@ -180,25 +179,38 @@ class DashboardService
                     $enYakinVade = null;
 
                     foreach ($kalanTaksitler as $taksit) {
-                        $tarih = Carbon::parse($taksit['taksit_tarihi']);
+                        $tarih = Carbon::parse($taksit['taksit_tarihi'])->startOfDay();
                         $kalan = Money::normalize($taksit['kalan_tutar']);
 
-                        if ($tarih->between($start, $end)) {
-                            $toplam = Money::add($toplam, $kalan);
+                        $isBuAy = $tarih->between($start, $end);
+                        $added = false;
 
-                            if ($tarih->lte($today)) {
-                                $gelen = Money::add($gelen, $kalan);
-                            } else {
+                        // Gelecek (Bugün ve sonrası)
+                        if ($tarih->gte($today)) {
+                            if ($isBuAy) {
                                 $gelecek = Money::add($gelecek, $kalan);
+                                $toplam = Money::add($toplam, $kalan);
+                                $added = true;
                             }
+                        } 
+                        // Son 7 Gün (Bugünden küçük ama 7 gün öncesine EŞİT VEYA BÜYÜK)
+                        elseif ($tarih->gte($sevenDaysAgo)) {
+                            $sonYedi = Money::add($sonYedi, $kalan);
+                            $toplam = Money::add($toplam, $kalan); // Beklentiye hala dahil
+                            $added = true;
+                        } 
+                        // Ölü / Riskli (> 7 Gün Gecikmiş)
+                        else {
+                            if ($isBuAy) {
+                                $oluGecmis = Money::add($oluGecmis, $kalan);
+                                $added = true; // Toplama eklenmez ama detayda gösterilir
+                            }
+                        }
 
+                        if ($added) {
                             $detailTaksitler[] = $taksit;
                             $protokolToplam = Money::add($protokolToplam, $kalan);
                             $enYakinVade = $enYakinVade ? min($enYakinVade, $taksit['taksit_tarihi']) : $taksit['taksit_tarihi'];
-                        }
-
-                        if ($tarih->lt($today) && $tarih->gte($sevenDaysAgo)) {
-                            $sonYedi = Money::add($sonYedi, $kalan);
                         }
                     }
 
@@ -220,14 +232,14 @@ class DashboardService
                 return [
                     'muvekkil_id' => (string) $muvekkil->id,
                     'muvekkil_ad' => $muvekkil->ad,
-                    'bu_ay_vadesi_gelen_tutari' => Money::float($gelen),
+                    'bu_ay_vadesi_gecmis_tutari' => Money::float($oluGecmis),
                     'bu_ay_vadesi_gelecek_tutari' => Money::float($gelecek),
                     'son_7_gun_vadesi_gecmis_tutari' => Money::float($sonYedi),
                     'toplam_beklenti_tutari' => Money::float($toplam),
                     'protokoller' => $detailRows,
                 ];
             })
-            ->filter(fn (array $row) => $row['toplam_beklenti_tutari'] > 0 || $row['son_7_gun_vadesi_gecmis_tutari'] > 0)
+            ->filter(fn (array $row) => $row['toplam_beklenti_tutari'] > 0 || $row['bu_ay_vadesi_gecmis_tutari'] > 0 || $row['son_7_gun_vadesi_gecmis_tutari'] > 0)
             ->sortByDesc('toplam_beklenti_tutari')
             ->values();
     }
@@ -370,17 +382,14 @@ class DashboardService
         $sumTwoPrev = '0.00';
 
         for ($day = 1; $day <= 31; $day++) {
-            // Bu Ay
             if ($day <= $currentMonth->daysInMonth) {
                 $dailyCurrent = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($currentMonth) && $row['tahsilat_tarihi']->day === $day);
                 $sumCurrent = Money::add($sumCurrent, $this->sumRows($dailyCurrent));
-                // Eğer gün bugünden büyükse 0 basma, boş bırak (çizgi bugün kesilsin)
                 $currentData[$day] = ($currentMonth->isCurrentMonth() && $day > now()->day) ? null : (float) Money::float($sumCurrent);
             } else {
                 $currentData[$day] = null;
             }
 
-            // Geçen Ay
             if ($day <= $previousMonth->daysInMonth) {
                 $dailyPrev = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($previousMonth) && $row['tahsilat_tarihi']->day === $day);
                 $sumPrev = Money::add($sumPrev, $this->sumRows($dailyPrev));
@@ -389,7 +398,6 @@ class DashboardService
                 $previousData[$day] = (float) Money::float($sumPrev);
             }
 
-            // 2 Ay Önce
             if ($day <= $twoMonthsAgo->daysInMonth) {
                 $dailyTwoPrev = $approved->filter(fn ($row) => $row['tahsilat_tarihi']->isSameMonth($twoMonthsAgo) && $row['tahsilat_tarihi']->day === $day);
                 $sumTwoPrev = Money::add($sumTwoPrev, $this->sumRows($dailyTwoPrev));

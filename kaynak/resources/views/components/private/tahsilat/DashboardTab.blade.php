@@ -70,7 +70,7 @@
             </div>
         </div>
 
-        {{-- 2. SATIR: MOMENTUM GRAFİĞİ (YENİ EKLENEN KISIM) --}}
+        {{-- 2. SATIR: MOMENTUM GRAFİĞİ --}}
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
             <div class="flex items-center justify-between mb-4">
                 <div>
@@ -91,39 +91,42 @@
         {{-- 3. SATIR: MÜVEKKİL BAZLI BU AY BEKLENTİ --}}
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm bg-white dark:bg-gray-800">
             <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                <div class="text-base font-bold text-gray-800 dark:text-gray-200">Müvekkil Bazlı Bu Ay Beklenti</div>
+                <div class="text-base font-bold text-gray-800 dark:text-gray-200">Müvekkil Bazlı Bu Ay Beklenti (Risk Hesaplamalı)</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="beklentiAltBaslik()"></div>
             </div>
 
             <div class="p-5 space-y-4">
+                {{-- YENİ İSİMLENDİRİLMİŞ BEKLENTİ KARTLARI --}}
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bu Ay Vadesi Gelen</div>
-                        <div class="mt-1 text-lg font-black text-rose-600 dark:text-rose-400" x-text="formatPara(muvekkilBeklenti().toplam_bu_ay_vadesi_gelen_tutari ?? muvekkilBeklenti().toplam_son_7_gun_vadesi_gecmis_tutari)"></div>
+                    <div class="rounded-xl border border-rose-100 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/20 p-4 relative overflow-hidden">
+                        <div class="text-[10px] font-bold uppercase tracking-wide text-rose-600/80 dark:text-rose-400">Bu Ay Vadesi Geçmiş (>7 Gün)</div>
+                        <div class="mt-1 text-lg font-black text-rose-600 dark:text-rose-400" x-text="formatPara(muvekkilBeklenti().toplam_bu_ay_vadesi_gecmis_tutari)"></div>
+                        <div class="text-[10px] font-medium text-rose-600/70 mt-1">Beklentiden silinmiştir (Riskli)</div>
                     </div>
-                    <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bu Ay Vadesi Gelecek</div>
-                        <div class="mt-1 text-lg font-black text-blue-600 dark:text-blue-400" x-text="formatPara(muvekkilBeklenti().toplam_bu_ay_vadesi_gelecek_tutari ?? muvekkilBeklenti().toplam_bu_ay_vade_tutari)"></div>
+                    <div class="rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/20 p-4">
+                        <div class="text-[10px] font-bold uppercase tracking-wide text-blue-600/80 dark:text-blue-400">Bu Ay Vadesi Gelecek</div>
+                        <div class="mt-1 text-lg font-black text-blue-600 dark:text-blue-400" x-text="formatPara(muvekkilBeklenti().toplam_bu_ay_vadesi_gelecek_tutari)"></div>
                     </div>
-                    <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Son 7 Gün Vadesi Geçmiş</div>
+                    <div class="rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-900/20 p-4">
+                        <div class="text-[10px] font-bold uppercase tracking-wide text-amber-600/80 dark:text-amber-400">Vadesi Son 7 Gün Geçmiş</div>
                         <div class="mt-1 text-lg font-black text-amber-600 dark:text-amber-400" x-text="formatPara(muvekkilBeklenti().toplam_son_7_gun_vadesi_gecmis_tutari)"></div>
                     </div>
-                    <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Toplam Beklenti</div>
+                    <div class="rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/20 p-4">
+                        <div class="text-[10px] font-bold uppercase tracking-wide text-emerald-600/80 dark:text-emerald-400">Toplam Beklenti (Gelecek + Son 7 Gün)</div>
                         <div class="mt-1 text-lg font-black text-emerald-600 dark:text-emerald-400" x-text="formatPara(muvekkilBeklenti().toplam_beklenti_tutari)"></div>
                     </div>
                 </div>
 
+                {{-- YENİ İNTERAKTİF TABLO --}}
                 <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Müvekkil</th>
-                                <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Bu Ay Vadesi Gelen</th>
-                                <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Bu Ay Vadesi Gelecek</th>
-                                <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Son 7 Gün Geçmiş</th>
-                                <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Toplam Beklenti</th>
+                                <th class="px-4 py-3 text-right text-[11px] font-bold text-rose-500 uppercase tracking-wider">Bu Ay Vadesi Geçmiş (>7 Gün)</th>
+                                <th class="px-4 py-3 text-right text-[11px] font-bold text-blue-500 uppercase tracking-wider">Bu Ay Vadesi Gelecek</th>
+                                <th class="px-4 py-3 text-right text-[11px] font-bold text-amber-500 uppercase tracking-wider">Vadesi Son 7 Gün Geçmiş</th>
+                                <th class="px-4 py-3 text-right text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Toplam Beklenti</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900/20">
@@ -135,21 +138,49 @@
                             <template x-for="satir in muvekkilBeklentiSatirlari()" :key="satir.muvekkil_id">
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                     <td class="px-4 py-3 font-medium text-gray-800 dark:text-gray-200" x-text="satir.muvekkil_ad"></td>
-                                    <td class="px-4 py-3 text-right text-rose-600 dark:text-rose-400 font-semibold" x-text="formatPara(satir.bu_ay_vadesi_gelen_tutari ?? satir.son_7_gun_vadesi_gecmis_tutari)"></td>
-                                    <td class="px-4 py-3 text-right text-blue-600 dark:text-blue-400 font-semibold">
-                                        <template x-if="beklentiGelecekTutari(satir) > 0">
+                                    
+                                    {{-- Ölü Geçmiş (> 7 Gün) Butonu --}}
+                                    <td class="px-4 py-3 text-right">
+                                        <template x-if="(satir.bu_ay_vadesi_gecmis_tutari ?? 0) > 0">
                                             <button type="button"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                                                @click="beklentiDetayModalAc(satir)">
-                                                <span x-text="formatPara(beklentiGelecekTutari(satir))"></span>
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-bold rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+                                                @click="beklentiDetayModalAc(satir, 'gecmis', 'Bu Ay Vadesi Geçmiş (>7 Gün)')">
+                                                <span x-text="formatPara(satir.bu_ay_vadesi_gecmis_tutari)"></span>
                                             </button>
                                         </template>
-                                        <template x-if="beklentiGelecekTutari(satir) <= 0">
+                                        <template x-if="(satir.bu_ay_vadesi_gecmis_tutari ?? 0) <= 0">
                                             <span class="text-gray-400 font-normal" x-text="formatPara(0)"></span>
                                         </template>
                                     </td>
-                                    <td class="px-4 py-3 text-right text-amber-600 dark:text-amber-400 font-semibold" x-text="formatPara(satir.son_7_gun_vadesi_gecmis_tutari)"></td>
+
+                                    {{-- Gelecek Butonu --}}
+                                    <td class="px-4 py-3 text-right">
+                                        <template x-if="(satir.bu_ay_vadesi_gelecek_tutari ?? 0) > 0">
+                                            <button type="button"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                                                @click="beklentiDetayModalAc(satir, 'gelecek', 'Bu Ay Vadesi Gelecek')">
+                                                <span x-text="formatPara(satir.bu_ay_vadesi_gelecek_tutari)"></span>
+                                            </button>
+                                        </template>
+                                        <template x-if="(satir.bu_ay_vadesi_gelecek_tutari ?? 0) <= 0">
+                                            <span class="text-gray-400 font-normal" x-text="formatPara(0)"></span>
+                                        </template>
+                                    </td>
+
+                                    {{-- Son 7 Gün Butonu --}}
+                                    <td class="px-4 py-3 text-right">
+                                        <template x-if="(satir.son_7_gun_vadesi_gecmis_tutari ?? 0) > 0">
+                                            <button type="button"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                                                @click="beklentiDetayModalAc(satir, 'son_7', 'Vadesi Son 7 Gün Geçmiş')">
+                                                <span x-text="formatPara(satir.son_7_gun_vadesi_gecmis_tutari)"></span>
+                                            </button>
+                                        </template>
+                                        <template x-if="(satir.son_7_gun_vadesi_gecmis_tutari ?? 0) <= 0">
+                                            <span class="text-gray-400 font-normal" x-text="formatPara(0)"></span>
+                                        </template>
+                                    </td>
+
                                     <td class="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400 font-bold" x-text="formatPara(satir.toplam_beklenti_tutari)"></td>
                                 </tr>
                             </template>
@@ -254,7 +285,7 @@
                         </div>
                     </div>
 
-                    {{-- Müvekkil Bazlı Aylık Tahsilat Toplamı --}}
+                    {{-- Müvekkil Bazlı Aylık Tahsilat Toplamı (Kaydırma Çubuğu Kaldırıldı) --}}
                     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex flex-col h-full">
                         <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">Müvekkil Aylık Toplam</div>
@@ -289,7 +320,7 @@
             </div>
         </div>
 
-        {{-- SENİN KENDİ BEKLENTİ DETAY MODALIN (DOKUNULMADI, SADECE CSS TEMİZLENDİ) --}}
+        {{-- BEKLENTİ DETAY MODALI (İçerisi seçilen butona göre filtrelenir) --}}
         <template x-teleport="body">
         <div x-show="beklentiDetayModal.acik"
              @keydown.escape.window="if (beklentiDetayModal.acik) beklentiDetayModalKapat()"
@@ -300,7 +331,7 @@
                 <div class="relative w-full max-w-6xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800 sm:max-h-[calc(100vh-3rem)]" @click.stop>
                     <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/50">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Bu Ay Vadesi Gelecek Protokoller</h3>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white" x-text="beklentiDetayModal.kategoriBaslik"></h3>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 <span class="font-bold text-gray-700 dark:text-gray-300" x-text="beklentiDetayModal.muvekkil_ad || '-'"></span>
                                 <span x-show="beklentiDetayModal.vade_ay">- <span x-text="ayEtiketiUzun(beklentiDetayModal.vade_ay)"></span></span>
@@ -334,11 +365,11 @@
                                     </div>
                                     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-4 shadow-sm">
                                         <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500">Protokol Sayisi</div>
-                                        <div class="mt-1 text-base font-bold text-indigo-600 dark:text-indigo-400" x-text="beklentiDetayModal.protokol_sayisi ?? 0"></div>
+                                        <div class="mt-1 text-base font-bold text-indigo-600 dark:text-indigo-400" x-text="computedProtokoller().length"></div>
                                     </div>
                                     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-4 shadow-sm">
-                                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500">Toplam Kalan Tutar</div>
-                                        <div class="mt-1 text-base font-bold text-emerald-600 dark:text-emerald-400" x-text="formatPara(beklentiDetayModal.toplam_kalan_tutar)"></div>
+                                        <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500">Kategori Toplamı</div>
+                                        <div class="mt-1 text-base font-black" :class="beklentiDetayModal.kategori === 'gecmis' ? 'text-rose-600 dark:text-rose-400' : (beklentiDetayModal.kategori === 'gelecek' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400')" x-text="formatPara(computedProtokoller().reduce((toplam, p) => toplam + p.protokol_kalan_tutar, 0))"></div>
                                     </div>
                                 </div>
 
@@ -354,10 +385,10 @@
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900/20">
-                                            <template x-if="(beklentiDetayModal.protokoller ?? []).length === 0">
-                                                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Bu muvekkil icin bu ay vadesi gelecek protokol bulunamadi.</td></tr>
+                                            <template x-if="computedProtokoller().length === 0">
+                                                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Bu kategoriye ait protokol bulunamadı.</td></tr>
                                             </template>
-                                            <template x-for="p in (beklentiDetayModal.protokoller ?? [])" :key="p.protokol_id">
+                                            <template x-for="p in computedProtokoller()" :key="p.protokol_id">
                                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 align-top transition-colors">
                                                     <td class="px-4 py-3">
                                                         <div class="font-bold text-gray-800 dark:text-gray-200" x-text="p.protokol_no || '-'"></div>
@@ -371,19 +402,18 @@
                                                         <div class="text-[11px] text-gray-500 mt-0.5" x-show="p.muhatap_telefon" x-text="p.muhatap_telefon"></div>
                                                     </td>
                                                     <td class="px-4 py-3">
-                                                        <div class="font-bold text-blue-600 dark:text-blue-400" x-text="tarihEtiketiKisa(p.en_yakin_vade_tarihi)"></div>
-                                                        <div class="text-[11px] space-y-1 mt-1.5">
+                                                        <div class="text-[11px] space-y-1">
                                                             <template x-for="t in (p.taksitler ?? [])" :key="t.taksit_id">
-                                                                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                                                                <div class="flex items-center gap-2" :class="beklentiDetayModal.kategori === 'gecmis' ? 'text-rose-600 dark:text-rose-400' : (beklentiDetayModal.kategori === 'gelecek' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400')">
+                                                                    <span class="w-1.5 h-1.5 rounded-full" :class="beklentiDetayModal.kategori === 'gecmis' ? 'bg-rose-500' : (beklentiDetayModal.kategori === 'gelecek' ? 'bg-blue-500' : 'bg-amber-500')"></span>
                                                                     <span x-text="'Taksit ' + (t.taksit_no ?? '-') + ':'"></span>
-                                                                    <span class="font-medium" x-text="tarihEtiketiKisa(t.taksit_tarihi)"></span>
+                                                                    <span class="font-bold" x-text="tarihEtiketiKisa(t.taksit_tarihi)"></span>
                                                                 </div>
                                                             </template>
                                                         </div>
                                                     </td>
                                                     <td class="px-4 py-3 text-right">
-                                                        <div class="font-black text-emerald-600 dark:text-emerald-400 text-base" x-text="formatPara(p.protokol_kalan_tutar)"></div>
+                                                        <div class="font-black text-base" :class="beklentiDetayModal.kategori === 'gecmis' ? 'text-rose-600 dark:text-rose-400' : (beklentiDetayModal.kategori === 'gelecek' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400')" x-text="formatPara(p.protokol_kalan_tutar)"></div>
                                                     </td>
                                                 </tr>
                                             </template>
@@ -406,18 +436,18 @@ function izlenceTab() {
     return {
         yukleniyor: true,
         istatistikler: {},
-        chartInstance: null, // YENİ: GRAFİK İÇİN
+        chartInstance: null,
 
         beklentiDetayModal: {
             acik: false,
             yukleniyor: false,
             hata: '',
+            kategori: '', // 'gecmis', 'gelecek', 'son_7'
+            kategoriBaslik: '',
             muvekkil_id: '',
             muvekkil_ad: '',
             hesap_tarihi: '',
             vade_ay: '',
-            toplam_kalan_tutar: 0,
-            protokol_sayisi: 0,
             protokoller: [],
         },
 
@@ -430,7 +460,6 @@ function izlenceTab() {
                 if (res.ok) {
                     this.istatistikler = await res.json();
                     
-                    // Veriler geldiğinde grafiği çizdir (YENİ EKLENDİ)
                     this.$nextTick(() => {
                         this.cizgiGrafikOlustur();
                     });
@@ -440,7 +469,6 @@ function izlenceTab() {
             }
         },
 
-        // YENİ EKLENEN GRAFİK ÇİZİM MOTORU
         cizgiGrafikOlustur() {
             const grafikVerisi = this.istatistikler?.grafik_verisi;
             if (!grafikVerisi) return;
@@ -495,10 +523,7 @@ function izlenceTab() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -515,10 +540,7 @@ function izlenceTab() {
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 10 } }
-                        },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
                         y: {
                             border: { display: false },
                             grid: { color: 'rgba(0,0,0,0.05)' },
@@ -547,15 +569,16 @@ function izlenceTab() {
             return Number.isFinite(tutar) ? tutar : 0;
         },
 
-        async beklentiDetayModalAc(satir) {
+        // YENİ: Kategori bazlı modal açma fonksiyonu
+        async beklentiDetayModalAc(satir, kategori, kategoriBaslik) {
             const muvekkilId = String(satir?.muvekkil_id ?? '').trim();
             if (muvekkilId === '') return;
 
             this.beklentiDetayModal = {
                 acik: true, yukleniyor: true, hata: '',
+                kategori: kategori, kategoriBaslik: kategoriBaslik,
                 muvekkil_id: muvekkilId, muvekkil_ad: String(satir?.muvekkil_ad ?? ''),
-                hesap_tarihi: '', vade_ay: '', toplam_kalan_tutar: 0,
-                protokol_sayisi: 0, protokoller: [],
+                hesap_tarihi: '', vade_ay: '', protokoller: [],
             };
 
             try {
@@ -566,7 +589,7 @@ function izlenceTab() {
                 });
 
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data?.message ?? data?.error ?? 'Beklenti detaylari yuklenemedi.');
+                if (!res.ok) throw new Error(data?.message ?? data?.error ?? 'Beklenti detayları yüklenemedi.');
 
                 const protokoller = Array.isArray(data?.protokoller) ? data.protokoller : [];
                 this.beklentiDetayModal = {
@@ -575,16 +598,11 @@ function izlenceTab() {
                     muvekkil_ad: String(data?.muvekkil_ad ?? this.beklentiDetayModal.muvekkil_ad ?? ''),
                     hesap_tarihi: String(data?.hesap_tarihi ?? ''),
                     vade_ay: String(data?.vade_ay ?? ''),
-                    toplam_kalan_tutar: Number(data?.toplam_kalan_tutar ?? 0),
-                    protokol_sayisi: Number(data?.protokol_sayisi ?? protokoller.length),
                     protokoller: protokoller.map((protokol) => ({
                         ...protokol,
-                        protokol_kalan_tutar: Number(protokol?.protokol_kalan_tutar ?? 0),
                         taksitler: Array.isArray(protokol?.taksitler)
                             ? protokol.taksitler.map((taksit) => ({
                                 ...taksit,
-                                taksit_tutari: Number(taksit?.taksit_tutari ?? 0),
-                                odenen_tutar: Number(taksit?.odenen_tutar ?? 0),
                                 kalan_tutar: Number(taksit?.kalan_tutar ?? 0),
                             })) : [],
                     })),
@@ -592,10 +610,44 @@ function izlenceTab() {
             } catch (error) {
                 this.beklentiDetayModal = {
                     ...this.beklentiDetayModal,
-                    yukleniyor: false, hata: error?.message ?? 'Beklenti detaylari yuklenemedi.',
-                    toplam_kalan_tutar: 0, protokol_sayisi: 0, protokoller: [],
+                    yukleniyor: false, hata: error?.message ?? 'Beklenti detayları yüklenemedi.',
+                    protokoller: [],
                 };
             }
+        },
+
+        // YENİ: Tıklanan kategoriye göre taksitleri filtreleyen fonksiyon
+        computedProtokoller() {
+            if (!this.beklentiDetayModal.protokoller) return [];
+            
+            const bugun = new Date();
+            bugun.setHours(0, 0, 0, 0);
+            
+            const yediGunOnce = new Date();
+            yediGunOnce.setDate(bugun.getDate() - 7);
+            yediGunOnce.setHours(0, 0, 0, 0);
+
+            const kategori = this.beklentiDetayModal.kategori;
+
+            return this.beklentiDetayModal.protokoller.map(p => {
+                const filtrelenmisTaksitler = (p.taksitler || []).filter(t => {
+                    const tTarih = new Date(t.taksit_tarihi + 'T00:00:00');
+                    if (kategori === 'gelecek') return tTarih >= bugun;
+                    if (kategori === 'son_7') return tTarih < bugun && tTarih >= yediGunOnce;
+                    if (kategori === 'gecmis') return tTarih < yediGunOnce;
+                    return true;
+                });
+
+                if (filtrelenmisTaksitler.length === 0) return null;
+
+                const yeniKalan = filtrelenmisTaksitler.reduce((acc, t) => acc + (Number(t.kalan_tutar) || 0), 0);
+
+                return {
+                    ...p,
+                    taksitler: filtrelenmisTaksitler,
+                    protokol_kalan_tutar: yeniKalan
+                };
+            }).filter(p => p !== null);
         },
 
         beklentiDetayModalKapat() { this.beklentiDetayModal.acik = false; },
