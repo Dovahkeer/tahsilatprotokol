@@ -569,11 +569,24 @@ function protokolFormModal() {
 
         pdfSecildi(event) {
             const file = event.target.files[0];
-            if (file && file.type === 'application/pdf') {
-                this.form.pdf_dosya = file;
+            if (file) {
+                // 10 MB Kontrolü (10 * 1024 * 1024 bytes)
+                if (file.size > 10485760) {
+                    alert('HATA: Seçtiğiniz dosya çok büyük (' + (file.size / 1024 / 1024).toFixed(2) + ' MB).\n\nLütfen en fazla 10 MB boyutunda bir PDF yükleyin.');
+                    this.form.pdf_dosya = null;
+                    event.target.value = '';
+                    return;
+                }
+
+                if (file.type === 'application/pdf') {
+                    this.form.pdf_dosya = file;
+                } else {
+                    alert('HATA: Lütfen sadece PDF formatında bir dosya seçin.');
+                    this.form.pdf_dosya = null;
+                    event.target.value = '';
+                }
             } else {
                 this.form.pdf_dosya = null;
-                event.target.value = '';
             }
         },
 
@@ -802,11 +815,13 @@ function protokolFormModal() {
 
                 const data = await res.json();
 
-                if (res.ok && data.success) {
-                    const protokolId = data.protokol?.id ?? this.duzenlenenProtokolId;
-
-                    if (this.form.pdf_dosya && protokolId) {
-                        await this.pdfYukle(protokolId);
+                if (this.form.pdf_dosya && protokolId) {
+                        try {
+                            await this.pdfYukle(protokolId);
+                        } catch (pdfError) {
+                            // EĞER PDF YÜKLENEMEZSE EKRANDA BAS BAS BAĞIRACAK!
+                            alert('DİKKAT: Protokol başarıyla oluşturuldu ancak PDF DOSYASI YÜKLENEMEDİ!\n\nSebep: ' + pdfError.message + '\n\nLütfen protokole tıklayıp "Düzenle" diyerek PDF dosyasını tekrar yüklemeyi deneyin.');
+                        }
                     }
 
                     this.kapat();
@@ -823,23 +838,25 @@ function protokolFormModal() {
         },
 
         async pdfYukle(protokolId) {
-            try {
-                const formData = new FormData();
-                formData.append('pdf', this.form.pdf_dosya);
+            const formData = new FormData();
+            formData.append('pdf', this.form.pdf_dosya);
 
-                await fetch('/tahsilat/protokol/' + protokolId + '/pdf', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: formData,
-                });
-            } catch (e) {
-                console.error('PDF yükleme hatası:', e);
+            const res = await fetch('/tahsilat/protokol/' + protokolId + '/pdf', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                const hataMesaji = data?.errors?.pdf?.[0] || data?.message || 'Dosya çok büyük olduğu için sunucu tarafından reddedildi.';
+                throw new Error(hataMesaji);
             }
         },
-
+        
         parseOran(value) {
             const parsed = parseFloat(value);
             return Number.isFinite(parsed) ? parsed : NaN;
