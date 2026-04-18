@@ -1038,23 +1038,38 @@ function tahsilatFormModal() {
         },
 
         whatsappKopyala() {
-    if (!this.basariData) return;
-    
-    const text = `*YENİ TAHSİLAT GİRİŞİ*
+            if (!this.basariData) return;
+            
+            const text = `*YENİ TAHSİLAT GİRİŞİ*
         *Borçlu:* ${this.basariData.borclu}
         *TCKN/VKN:* ${this.basariData.tckn ?? '-'}
         *Müvekkil:* ${this.basariData.muvekkil}
         *Portföy:* ${this.basariData.portfoy}
-        *Taksit/Durum:* ${this.basariData.taksit}
-        *Tutar:* ${this.basariData.tutar}
+        *Taksit/Durum:* ${this.basariData.taksitBilgisi ?? '-'}
+        *Tutar:* ${this.formatPara(this.basariData.tutar)}
+        *Tahsilat Kanalı:* ${this.basariData.kanal}
+        *Giriş Yapan:* ${this.basariData.kullanici}
+        *Tarih:* ${this.basariData.tarih}`.replace(/^[ \t]+/gm, ''); // Baştaki boşlukları temizler
 
-        Makbuz sisteme yüklendi. İyi çalışmalar.`;
-    
-        navigator.clipboard.writeText(text).then(() => {
-            this.kopyalandi = true;
-            setTimeout(() => this.kopyalandi = false, 2000);
-        });
-    },
+            // HTTPS zorunluluğunu aşan garantili kopyalama yöntemi
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; 
+            textArea.style.left = "-999999px"; 
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                alert('Mesaj kopyalandı! WhatsApp grubuna yapıştırabilirsiniz.');
+            } catch (err) {
+                alert('Kopyalama başarısız oldu. Lütfen manuel kopyalayın.');
+            } finally {
+                textArea.remove();
+            }
+        },
     };
 }
 </script>

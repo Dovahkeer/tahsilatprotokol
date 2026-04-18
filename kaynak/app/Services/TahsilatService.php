@@ -357,6 +357,7 @@ class TahsilatService
 
     private function assertCollectable(Protokol $protokol, OdemeKalemiTipi $tip, string $tutar, ?ProtokolTaksit $taksit = null): void
     {
+        // Kilit (Lock) mekanizmasını eşzamanlı ödeme çakışmalarını önlemek için koruyoruz
         DB::table('protokoller')->where('id', $protokol->id)->lockForUpdate()->get();
 
         $kalan = match ($tip) {
@@ -365,11 +366,15 @@ class TahsilatService
             default => $tutar,
         };
 
-        if (Money::cmp($tutar, $kalan) === 1) {
+        // 2. YOL (YAZILIMSAL ESNEKLİK): Karşı vekalet ücreti gibi fazla ödemeleri alabilmek için
+        // limit aşımını engelleyen ve hata fırlatan kuralı devre dışı bıraktık.
+        
+        /* if (Money::cmp($tutar, $kalan) === 1) {
             throw ValidationException::withMessages([
                 'tutar' => 'Girilen tutar kalan tahsil edilebilir tutarı aşıyor.',
             ]);
         }
+        */
     }
 
     private function lockAndRemainingPesinat(Protokol $protokol): string
