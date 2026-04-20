@@ -205,7 +205,7 @@
                                                 <select x-model="kayit.kademe"
                                                     class="w-48 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-shadow shadow-sm cursor-pointer hover:border-gray-400">
                                                     <template x-for="kademe in kademeler" :key="kademe.kademe">
-                                                        <option :value="kademe.kademe" x-text="kademe.kademe_adi + ' (' + kademe.kademe + ')'"></option>
+                                                        <option :value="kademe.kademe" x-text="kademe.kademe_adi + ' (' + kademe.kademe + ')'" :selected="kayit.kademe === kademe.kademe"></option>
                                                     </template>
                                                 </select>
                                             </td>
