@@ -240,7 +240,7 @@
 
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 w-full md:max-w-sm md:justify-self-end">
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            <span x-text="duzenlemeModu ? 'Ek Dekontlar (Opsiyonel)' : 'Dekontlar (PDF/JPG/PNG) *'"></span>
+                            <span x-text="duzenlemeModu ? 'Ek Dekontlar (Opsiyonel)' :"></span>
                         </label>
                         
                         {{-- Sürükle Bırak Alanı --}}
@@ -332,8 +332,7 @@
                         *Müvekkil:* ${basariData?.muvekkil}
                         *Portföy:* ${basariData?.portfoy}
                         *Taksit/Durum:* ${basariData?.taksit}
-                        *Tutar:* ${basariData?.tutar}
-                        Makbuz sisteme yüklendi. İyi çalışmalar.`"></textarea>
+                        *Tutar:* ${basariData?.tutar}`"></textarea>
                     </div>
                 </div>
 
@@ -1090,11 +1089,8 @@ function tahsilatFormModal() {
         *TCKN/VKN:* ${this.basariData.tckn ?? '-'}
         *Müvekkil:* ${this.basariData.muvekkil}
         *Portföy:* ${this.basariData.portfoy}
-        *Taksit/Durum:* ${this.basariData.taksitBilgisi ?? '-'}
-        *Tutar:* ${this.formatPara(this.basariData.tutar)}
-        *Tahsilat Kanalı:* ${this.basariData.kanal}
-        *Giriş Yapan:* ${this.basariData.kullanici}
-        *Tarih:* ${this.basariData.tarih}`.replace(/^[ \t]+/gm, ''); // Baştaki boşlukları temizler
+        *Taksit/Durum:* ${this.basariData.taksit}
+        *Tutar:* ${this.formatPara(this.basariData.tutar)}`.replace(/^[ \t]+/gm, '');
 
             // HTTPS zorunluluğunu aşan garantili kopyalama yöntemi
             const textArea = document.createElement("textarea");
@@ -1108,7 +1104,7 @@ function tahsilatFormModal() {
 
             try {
                 document.execCommand('copy');
-                alert('Mesaj kopyalandı! WhatsApp grubuna yapıştırabilirsiniz.');
+                alert('Mesaj kopyalandı! Grubuna yapıştırabilirsiniz.');
             } catch (err) {
                 alert('Kopyalama başarısız oldu. Lütfen manuel kopyalayın.');
             } finally {

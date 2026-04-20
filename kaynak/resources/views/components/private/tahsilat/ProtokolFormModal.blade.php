@@ -815,11 +815,13 @@ function protokolFormModal() {
 
                 const data = await res.json();
 
-                if (this.form.pdf_dosya && protokolId) {
+                if (res.ok && data.success) {
+                    const protokolId = data.protokol?.id ?? this.duzenlenenProtokolId;
+
+                    if (this.form.pdf_dosya && protokolId) {
                         try {
                             await this.pdfYukle(protokolId);
                         } catch (pdfError) {
-                            // EĞER PDF YÜKLENEMEZSE EKRANDA BAS BAS BAĞIRACAK!
                             alert('DİKKAT: Protokol başarıyla oluşturuldu ancak PDF DOSYASI YÜKLENEMEDİ!\n\nSebep: ' + pdfError.message + '\n\nLütfen protokole tıklayıp "Düzenle" diyerek PDF dosyasını tekrar yüklemeyi deneyin.');
                         }
                     }
