@@ -32,13 +32,13 @@
             @endphp
 
             <div class="flex items-center gap-2">
-                <a href="{{ route('tahsilat.export.mail-order-pdf') }}"
+                <button type="button" @click="mailOrderModalAc()"
                     class="inline-flex items-center gap-2 h-9 px-3.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/>
                     </svg>
                     Mail Order PDF
-                </a>
+                </button>
 
                 @if(auth()->user()->isYonetici())
                 <button @click="topluTahsilatModalAc()"
@@ -222,6 +222,35 @@
     </div>
     </template>
 
+    {{-- Mail Order PDF Rapor Modalı --}}
+    <template x-teleport="body">
+    <div x-show="mailOrderModal.acik" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-sm" @click="mailOrderModal.acik = false"></div>
+        <div class="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div class="relative w-full max-w-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white p-6 shadow-2xl dark:bg-gray-800" @click.stop>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Mail Order Raporu</h3>
+            <p class="text-xs text-gray-500 mb-4">Hangi güne ait muhasebe raporunu almak istiyorsunuz?</p>
+            
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Rapor Tarihi</label>
+            <input type="date" x-model="mailOrderModal.tarih" 
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
+            
+            <div class="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button @click="mailOrderModal.acik = false"
+                    class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    İptal
+                </button>
+                <a :href="'/tahsilat/export/mail-order-pdf?tarih=' + mailOrderModal.tarih" target="_blank" @click="mailOrderModal.acik = false"
+                    class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    PDF Oluştur
+                </a>
+            </div>
+        </div>
+        </div>
+    </div>
+    </template>
+
 
     {{-- Red Nedeni Modalı --}}
     <template x-teleport="body">
@@ -274,7 +303,17 @@ function tahsilatTakipTab() {
         redModal: { acik: false, tahsilat: null, neden: '' },
         dekontModal: { acik: false, url: '', baslik: '' }, // YENİ EKLENEN KİLİT DEĞİŞKEN
         bilgiModal: { acik: false, baslik: '', icerik: '' },
+        mailOrderModal: { acik: false, tarih: '' }, // YENİ EKLENDİ
         tahsilatModal: false,
+
+
+        mailOrderModalAc() {
+            // Varsayılan olarak "Dün" seçili gelsin
+            const dun = new Date();
+            dun.setDate(dun.getDate() - 1);
+            this.mailOrderModal.tarih = dun.toISOString().split('T')[0];
+            this.mailOrderModal.acik = true;
+        },
 
         get toplamKayitSayisi() {
             return (this.tahsilatlar ?? []).length;

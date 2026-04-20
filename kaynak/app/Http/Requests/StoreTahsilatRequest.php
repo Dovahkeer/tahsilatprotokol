@@ -26,10 +26,16 @@ class StoreTahsilatRequest extends FormRequest
             'tahsilat_tarihi' => ['required', 'date'],
             'tutar' => ['required', 'regex:/^\d+(\.\d{2})?$/'],
             'tahsilat_yontemi' => ['required', Rule::in(array_keys(config('tahsilat.tahsilat_yontemleri', [])))],
+
+            // YENİ: Mail Order seçildiyse POS Cihazı zorunludur
+            'pos_cihazi' => ['nullable', 'string', 'max:255', 'required_if:tahsilat_yontemi,vekil_hesabina_mail_order,vekalet_ucreti_mail_order'],
+
             'tahsilat_birimleri' => ['required', 'array', 'min:1'],
             'tahsilat_birimleri.*' => ['required', Rule::in(array_keys(config('tahsilat.tahsilat_birimleri', [])))],
             'notlar' => ['nullable', 'string'],
-            'dekont' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:15360'],
+
+            // YENİ: Elden alındı DEĞİLSE dekont zorunludur
+            'dekont' => ['required_unless:tahsilat_yontemi,elden_alindi,vekalet_ucreti_elden_alindi', 'file', 'mimes:pdf,jpg,jpeg,png,webp,bmp,gif,tiff,tif', 'max:15360'],
         ];
     }
 }

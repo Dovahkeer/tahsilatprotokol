@@ -71,7 +71,7 @@ class TahsilatService
         return $this->toArray($tahsilat, withFullProtokol: true);
     }
 
-    public function create(array $data, UploadedFile $dekont, User $user): Tahsilat
+    public function create(array $data, ?UploadedFile $dekont, User $user): Tahsilat
     {
         return DB::transaction(function () use ($data, $dekont, $user) {
             [$protokol, $taksit, $odemeKalemiTipi] = $this->resolvePaymentTarget($data);
@@ -92,6 +92,7 @@ class TahsilatService
                 'tahsilat_tarihi' => $data['tahsilat_tarihi'],
                 'tutar' => $tutar,
                 'tahsilat_yontemi' => $data['tahsilat_yontemi'],
+                'pos_cihazi' => $data['pos_cihazi'] ?? null, // YENİ EKLENEN SATIR
                 'tahsilat_birimleri' => array_values($data['tahsilat_birimleri']),
                 'notlar' => $data['notlar'] ?? null,
                 'onay_durumu' => TahsilatOnayDurumu::Beklemede->value,
@@ -99,7 +100,9 @@ class TahsilatService
                 'updated_by' => $user->id,
             ]);
 
-            $this->storeDekont($tahsilat, $dekont, $user);
+            if ($dekont) {
+                $this->storeDekont($tahsilat, $dekont, $user);
+            }
 
             return $tahsilat->fresh(['muvekkil', 'protokol.portfoy', 'dekontlar']);
         });
@@ -132,6 +135,7 @@ class TahsilatService
                 'tahsilat_tarihi' => $data['tahsilat_tarihi'],
                 'tutar' => $tutar,
                 'tahsilat_yontemi' => $data['tahsilat_yontemi'],
+                'pos_cihazi' => $data['pos_cihazi'] ?? null, // YENİ EKLENEN SATIR
                 'tahsilat_birimleri' => array_values($data['tahsilat_birimleri']),
                 'notlar' => $data['notlar'] ?? null,
                 'updated_by' => $user->id,
@@ -289,6 +293,7 @@ class TahsilatService
             'tahsilat_tarihi' => optional($tahsilat->tahsilat_tarihi)->toDateString(),
             'tutar' => Money::float($tahsilat->tutar),
             'tahsilat_yontemi' => $tahsilat->tahsilat_yontemi,
+            'pos_cihazi' => $tahsilat->pos_cihazi, // YENİ EKLENEN SATIR
             'tahsilat_birimleri' => $tahsilat->tahsilat_birimleri ?? [],
             'notlar' => $tahsilat->notlar,
             'onay_durumu' => $tahsilat->onay_durumu,

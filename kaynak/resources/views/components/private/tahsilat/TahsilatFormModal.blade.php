@@ -213,8 +213,30 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
-                        <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Yöntem seçimi zorunludur.</p>
+
+                        {{-- YENİ EKLENEN POS SEÇİM ALANI (Sadece Mail Order seçilirse açılır) --}}
+                        <div x-show="['vekil_hesabina_mail_order', 'vekalet_ucreti_mail_order'].includes(form.tahsilat_yontemi)" 
+                            x-collapse class="mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+                                POS Cihazı <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <select x-model="form.pos_cihazi"
+                                    class="w-full h-9 pl-3 pr-9 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-sm text-amber-900 dark:text-amber-100 appearance-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500">
+                                    <option value="">-- POS Cihazı Seçin --</option>
+                                    <option value="ParamPOS">ParamPOS</option>
+                                    <option value="DenizBank POS">DenizBank POS</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 w-full md:max-w-sm md:justify-self-end">
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            <span x-text="duzenlemeModu ? 'Ek Dekontlar (Opsiyonel)' : 'Dekontlar (PDF/JPG/PNG)'"></span>
+                            {{-- YENİ: Elden Alındıysa Kırmızı Yıldız Gizlenir --}}
+                            <span x-show="!['elden_alindi', 'vekalet_ucreti_elden_alindi'].includes(form.tahsilat_yontemi) && !duzenlemeModu" class="text-red-500">*</span>
+                        </label>
 
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 w-full md:max-w-sm md:justify-self-end">
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -291,7 +313,7 @@
                 </div>
 
                 <div class="p-5 space-y-4" x-show="basariData">
-                    <a :href="basariData?.download_url" download class="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl font-bold transition-colors border border-gray-300 dark:border-gray-600">
+                    <a x-show="basariData?.download_url" :href="basariData?.download_url" download class="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl font-bold transition-colors border border-gray-300 dark:border-gray-600">
                         <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
                         Birleştirilmiş Dekontu İndir
                     </a>
@@ -385,6 +407,7 @@ function tahsilatFormModal() {
             tahsilat_tarihi: new Date().toISOString().slice(0, 10),
             tutar: '',
             tahsilat_yontemi: '',
+            pos_cihazi: '', // YENİ EKLENDİ
             tahsilat_birimleri: [],
             notlar: '',
         },
@@ -473,6 +496,7 @@ function tahsilatFormModal() {
                     tahsilat_tarihi: (tahsilat.tahsilat_tarihi ?? '').slice(0, 10),
                     tutar: this.formatAmountFromNumber(tahsilat.tutar ?? ''),
                     tahsilat_yontemi: tahsilat.tahsilat_yontemi ?? '',
+                    pos_cihazi: tahsilat.pos_cihazi ?? '', // YENİ
                     tahsilat_birimleri: Array.isArray(tahsilat.tahsilat_birimleri) ? tahsilat.tahsilat_birimleri : [],
                     notlar: tahsilat.notlar ?? '',
                 };
@@ -686,8 +710,9 @@ function tahsilatFormModal() {
                     }
                 }
 
-                // DİKKAT: Artık form.dekont yerine dosyalar dizisini kontrol ediyoruz.
-                if (this.dosyalar.length === 0) {
+                // DEKONT ZORUNLULUĞU KONTROLÜ
+                const isEldenAlindi = ['elden_alindi', 'vekalet_ucreti_elden_alindi'].includes(this.form.tahsilat_yontemi);
+                if (!isEldenAlindi && this.dosyalar.length === 0) {
                     this.hata = 'Lütfen en az bir dekont (PDF/JPG/PNG) ekleyin.';
                     return;
                 }
@@ -700,6 +725,13 @@ function tahsilatFormModal() {
 
             if (!Array.isArray(this.form.tahsilat_birimleri) || this.form.tahsilat_birimleri.length === 0) {
                 this.hata = 'En az bir tahsilat birimi seçmelisiniz.';
+                return;
+            }
+
+            // POS CİHAZI ZORUNLULUĞU KONTROLÜ
+            const isMailOrder = ['vekil_hesabina_mail_order', 'vekalet_ucreti_mail_order'].includes(this.form.tahsilat_yontemi);
+            if (isMailOrder && !this.form.pos_cihazi) {
+                this.hata = 'Mail Order işlemleri için POS cihazı seçimi zorunludur.';
                 return;
             }
 
@@ -724,8 +756,11 @@ function tahsilatFormModal() {
         },
 
         async olustur() {
-            this.kaydediliyorDurum = 'Dekontlar birleştiriliyor (PDF)...';
-            const finalDekont = await this.dekontlariBirlestir();
+            let finalDekont = null;
+            if (this.dosyalar.length > 0) {
+                this.kaydediliyorDurum = 'Dekontlar birleştiriliyor (PDF)...';
+                finalDekont = await this.dekontlariBirlestir();
+            }
 
             this.kaydediliyorDurum = 'Sunucuya gönderiliyor...';
             const normalizedTutar = this.toBackendAmount(this.form.tutar);
@@ -740,8 +775,12 @@ function tahsilatFormModal() {
             formData.append('tahsilat_tarihi', this.form.tahsilat_tarihi ?? '');
             formData.append('tutar', normalizedTutar ?? '');
             formData.append('tahsilat_yontemi', this.form.tahsilat_yontemi ?? '');
+            formData.append('pos_cihazi', this.form.pos_cihazi ?? ''); // YENİ
             formData.append('notlar', this.form.notlar ?? '');
-            formData.append('dekont', finalDekont);
+
+            if (finalDekont) {
+                formData.append('dekont', finalDekont); // Sadece dekont varsa gönder
+            }
 
             for (const birim of this.form.tahsilat_birimleri) {
                 formData.append('tahsilat_birimleri[]', birim);
@@ -764,13 +803,17 @@ function tahsilatFormModal() {
                 const taksitEtiketi = seciliKalem ? seciliKalem.label.split(' - ')[0] : 'Serbest / Peşinat';
 
                 this.basariData = {
-                    download_url: `/tahsilat/dekont/${t.dekontlar[0].id}/view`,
+                    // DEKONT YOKSA (Elden Alındı vb.) İndir Butonunu Gizle veya Linki Boşalt
+                    download_url: (t.dekontlar && t.dekontlar.length > 0) ? `/tahsilat/dekont/${t.dekontlar[0].id}/view` : null,
                     borclu: t.borclu_adi,
                     tckn: t.borclu_tckn_vkn,
                     muvekkil: t.muvekkil ? t.muvekkil.ad : '-',
                     portfoy: t.portfoy ? t.portfoy.ad : '-',
                     tutar: this.formatPara(t.tutar),
-                    taksit: taksitEtiketi
+                    taksit: taksitEtiketi,
+                    kanal: t.tahsilat_yontemi,
+                    kullanici: 'Kullanıcı',
+                    tarih: t.tahsilat_tarihi
                 };
 
                 this.basariModaliAcik = true;
@@ -789,6 +832,7 @@ function tahsilatFormModal() {
                 tahsilat_tarihi: this.form.tahsilat_tarihi ?? '',
                 tutar: normalizedTutar ?? '',
                 tahsilat_yontemi: this.form.tahsilat_yontemi ?? '',
+                pos_cihazi: this.form.pos_cihazi ?? '', // YENİ
                 tahsilat_birimleri: this.form.tahsilat_birimleri ?? [],
                 borclu_adi: this.form.borclu_adi ?? '',
                 borclu_tckn_vkn: this.form.borclu_tckn_vkn ?? '',
@@ -864,6 +908,7 @@ function tahsilatFormModal() {
                 tahsilat_tarihi: new Date().toISOString().slice(0, 10),
                 tutar: '',
                 tahsilat_yontemi: '',
+                pos_cihazi: '', // YENİ
                 tahsilat_birimleri: [],
                 notlar: '',
             };

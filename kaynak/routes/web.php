@@ -71,7 +71,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('/export/excel', [ExportController::class, 'excel'])->name('tahsilat.export.excel');
-        Route::get('/export/mail-order-pdf', [ExportController::class, 'mailOrderPdf'])->name('tahsilat.export.mail-order-pdf');
+        Route::get('/export/mail-order-pdf', [\App\Http\Controllers\TahsilatController::class, 'mailOrderPdf'])->name('tahsilat.export.mail-order-pdf');
 
         // YENİ EKLENEN ROTA:
         Route::get('/export/vade-takip', [ExportController::class, 'vadeTakip'])->name('tahsilat.export.vade-takip');

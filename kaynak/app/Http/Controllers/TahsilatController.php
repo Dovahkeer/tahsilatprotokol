@@ -12,6 +12,7 @@ use App\Models\TahsilatDekontu;
 use App\Services\TahsilatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TahsilatController extends Controller
 {
@@ -120,5 +121,31 @@ class TahsilatController extends Controller
     public function dekontView(TahsilatDekontu $dekont)
     {
         return $this->tahsilatService->dekontResponse($dekont);
+    }
+
+    public function mailOrderPdf(\Illuminate\Http\Request $request)
+    {
+        // Tarih seçilmemişse bugünü baz al
+        $hedefTarih = $request->input('tarih', now()->toDateString());
+
+        // Sadece Mail Order tahsilatları ve seçilen tarihi getir (Vekalet ücreti dahil)
+        $tahsilatlar = \App\Models\Tahsilat::query()
+            ->with('muvekkil')
+            ->whereDate('tahsilat_tarihi', $hedefTarih)
+            ->whereIn('tahsilat_yontemi', ['vekil_hesabina_mail_order', 'vekalet_ucreti_mail_order'])
+            ->where('onay_durumu', '!=', 'iptal') // İptaller rapora girmesin
+            ->orderBy('pos_cihazi')
+            ->get();
+
+        $generatedAt = now();
+
+        // DİKKAT: Ekran görüntüsüne istinaden 'exports.' klasör yolunu ekledim.
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.mail-order-pdf', [
+            'rows' => $tahsilatlar,
+            'generatedAt' => $generatedAt,
+            'hedefTarih' => \Carbon\Carbon::parse($hedefTarih),
+        ]);
+
+        return $pdf->stream("MailOrderRaporu_{$hedefTarih}.pdf");
     }
 }
