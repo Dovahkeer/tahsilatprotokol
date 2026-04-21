@@ -13,6 +13,7 @@ use App\Models\TahsilatYetkiliKullanici;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Models\Portfoy;
 
 class YetkiService
 {
@@ -81,6 +82,17 @@ class YetkiService
             'kademe_pay_oranlari' => PrimKademePayOrani::query()->orderBy('ust_kademe')->orderBy('alt_kademe')->get()->toArray(),
             'kademe_prim_asamalari' => PrimKademeAsamasi::query()->orderBy('kademe')->orderBy('asama_no')->get()->toArray(),
             'muvekkil_oranlari' => $muvekkilRows,
+
+            // YENİ HALİ: Önce müvekkil adına, sonra portföy adına göre alfabetik sıralar
+            'portfoyler' => Portfoy::query()->with('muvekkil')->get()->map(fn ($p) => [
+                'id' => (string) $p->id,
+                'muvekkil_id' => (string) $p->muvekkil_id,
+                'muvekkil_ad' => $p->muvekkil?->ad ?? '-',
+                'ad' => $p->ad,
+                'kod' => $p->kod,
+                'aktif' => $p->aktif,
+            ])->sortBy(fn($item) => $item['muvekkil_ad'] . ' - ' . $item['ad'])->values()->all(),
+
             'audit_kayitlari' => PrimAuditLogu::query()
                 ->with('degistiren')
                 ->latest()
@@ -329,4 +341,26 @@ class YetkiService
             $this->audit('prim_kademeler', 'create', ['kademe' => $yeniKademeKey], null, $kademeModel->toArray(), $actor);
         });
     }
+
+    public function createPortfoy(array $data, User $actor): void
+    {
+        Portfoy::query()->create([
+            'muvekkil_id' => $data['muvekkil_id'],
+            'ad' => $data['ad'],
+            'kod' => $data['kod'] ?? null,
+            'normalized_ad' => \Illuminate\Support\Str::slug($data['ad'], ' '),
+            'aktif' => true,
+        ]);
+    }
+
+    public function updatePortfoy(int $id, array $data, User $actor): void
+    {
+        $portfoy = Portfoy::query()->findOrFail($id);
+        $portfoy->update([
+            'ad' => $data['ad'] ?? $portfoy->ad,
+            'kod' => $data['kod'] ?? $portfoy->kod,
+            'aktif' => $data['aktif'] ?? $portfoy->aktif,
+        ]);
+    }
+
 }

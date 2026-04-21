@@ -89,4 +89,30 @@ class YetkiController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function portfoyEkle(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'muvekkil_id' => ['required', 'exists:muvekkiller,id'],
+            'ad' => ['required', 'string', 'max:255'],
+            'kod' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->yetkiService->createPortfoy($validated, $request->user());
+
+        return response()->json(['success' => true]);
+    }
+
+    public function portfoyGuncelle(\Illuminate\Http\Request $request, $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'ad' => ['nullable', 'string', 'max:255'],
+            'kod' => ['nullable', 'string', 'max:255'],
+            'aktif' => ['nullable', 'boolean'],
+        ]);
+
+        $this->yetkiService->updatePortfoy($id, $validated, $request->user());
+
+        return response()->json(['success' => true]);
+    }
 }

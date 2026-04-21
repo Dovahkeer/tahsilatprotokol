@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/yetki/prim-ayarlar/hacizci-kademe', [YetkiController::class, 'hacizciKademe']);
             Route::post('/yetki/prim-ayarlar/muvekkil-oranlari', [YetkiController::class, 'muvekkilOranlari']);
             // YENİ EKLENEN ROTA BURADA:
+            Route::post('/yetki/prim-ayarlar/portfoy-ekle', [YetkiController::class, 'portfoyEkle']);
+            Route::put('/yetki/prim-ayarlar/portfoy/{id}', [YetkiController::class, 'portfoyGuncelle']);
             Route::post('/yetki/prim-ayarlar/hacizci-ekle', [YetkiController::class, 'hacizciEkle']);
             Route::post('/yetki/kullanici-ekle', [YetkiController::class, 'kullaniciEkle']);
             Route::post('/yetki/{user}/sifre-degistir', [YetkiController::class, 'sifreDegistir'])->whereNumber('user');

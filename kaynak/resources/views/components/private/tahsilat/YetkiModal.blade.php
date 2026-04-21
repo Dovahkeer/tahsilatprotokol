@@ -59,6 +59,11 @@
                             class="whitespace-nowrap py-2 px-1 border-b-2 text-sm font-medium transition-colors">
                             Audit Geçmişi
                         </button>
+                        <button type="button" @click="aktifSekme='portfoy'"
+                            :class="aktifSekme === 'portfoy' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 text-sm font-medium transition-colors">
+                            Portföy Yönetimi
+                        </button>
                     </nav>
                 </div>
 
@@ -436,6 +441,64 @@
                         </tbody>
                     </table>
                 </div>
+
+                {{-- PORTFÖY YÖNETİMİ SEKMESİ --}}
+                <div x-show="aktifSekme === 'portfoy'" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200">Portföy Yönetimi</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Müvekkillere ait portföyleri (GSD, Bireysel vb.) yönetin. İsimlerini standardize edin.</p>
+                        </div>
+                        <button type="button" @click="yeniPortfoyModalAc()" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-200 rounded-lg text-sm font-bold transition-all shadow-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Yeni Portföy Ekle
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-left">
+                                <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                                    <tr>
+                                        <th class="py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Müvekkil</th>
+                                        <th class="py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Portföy Adı</th>
+                                        <th class="py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Portföy Kodu</th>
+                                        <th class="py-3 px-5 font-semibold text-gray-600 dark:text-gray-300 text-center w-32">Durum</th>
+                                        <th class="py-3 px-5 font-semibold text-gray-600 dark:text-gray-300 text-center w-24">Kaydet</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+                                    <template x-for="p in portfoyler" :key="p.id">
+                                        <tr class="transition-all hover:bg-gray-50/80 dark:hover:bg-gray-800/80" :class="!p.aktif ? 'bg-gray-50/50 grayscale-[20%] opacity-80' : ''">
+                                            <td class="py-2 px-5 text-gray-600 dark:text-gray-400" x-text="p.muvekkil_ad"></td>
+                                            <td class="py-2 px-5">
+                                                <input type="text" x-model="p.ad" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+                                            </td>
+                                            <td class="py-2 px-5">
+                                                <input type="text" x-model="p.kod" placeholder="Kod" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+                                            </td>
+                                            <td class="py-2 px-5 flex justify-center">
+                                                <button type="button" @click="p.aktif = !p.aktif"
+                                                    :class="p.aktif ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'"
+                                                    class="relative inline-flex items-center justify-center px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-full border transition-all w-24">
+                                                    <span class="relative flex h-2 w-2 mr-2">
+                                                        <span :class="p.aktif ? 'bg-emerald-500' : 'bg-red-500'" class="relative inline-flex rounded-full h-full w-full"></span>
+                                                    </span>
+                                                    <span x-text="p.aktif ? 'AKTİF' : 'PASİF'"></span>
+                                                </button>
+                                            </td>
+                                            <td class="py-2 px-5 text-center">
+                                                <button @click="portfoyGuncelle(p)" class="text-amber-600 hover:text-amber-800 p-1.5 rounded-md hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors" title="Kaydet">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
@@ -611,6 +674,41 @@
             </div>
         </div>
     </div>
+
+    {{-- YENİ PORTFÖY EKLE MODALI --}}
+    <div x-show="yeniPortfoyModalAcik" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" x-cloak>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 overflow-hidden" @click.stop>
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Yeni Portföy Ekle</h4>
+                <button @click="yeniPortfoyModalAcik = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Müvekkil *</label>
+                    <select x-model="yeniPortfoyForm.muvekkil_id" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-amber-500 outline-none">
+                        <option value="">Seçiniz</option>
+                        <template x-for="m in muvekkilOranlari" :key="m.muvekkil_id">
+                            <option :value="m.muvekkil_id" x-text="m.muvekkil_ad"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portföy Adı *</label>
+                    <input type="text" x-model="yeniPortfoyForm.ad" placeholder="Örn: Garanti - GSD" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portföy Kodu</label>
+                    <input type="text" x-model="yeniPortfoyForm.kod" placeholder="İsteğe bağlı" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-amber-500 outline-none">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 flex justify-end gap-2">
+                <button @click="yeniPortfoyModalAcik = false" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg">İptal</button>
+                <button @click="yeniPortfoyKaydet()" :disabled="kaydediliyor || !yeniPortfoyForm.ad || !yeniPortfoyForm.muvekkil_id" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg disabled:opacity-50">Ekle</button>
+            </div>
+        </div>
+    </div>
 </div>
 </template>
 
@@ -640,6 +738,9 @@ function yetkiYonetimiModal() {
         yeniAsamaModalAcik: false,
         yeniAsamaForm: { kademe: '', esik_tutari: '', prim_orani: '' },
 
+        yeniPortfoyModalAcik: false,
+        yeniPortfoyForm: { muvekkil_id: '', ad: '', kod: '' },
+
         kullanicilar: [],
         tabTanimlari: [],
         kademeler: [],
@@ -648,6 +749,7 @@ function yetkiYonetimiModal() {
         kademePrimAsamalari: [],
         muvekkilOranlari: [],
         auditKayitlari: [],
+        portfoyler: [], // YENİ EKLENDİ
 
         async yukle() {
             this.yukleniyor = true;
@@ -713,6 +815,12 @@ function yetkiYonetimiModal() {
                     ...m,
                     prim_orani: m.prim_orani === null ? '' : this.toNumber(m.prim_orani),
                     aktif: Boolean(m.aktif),
+                }));
+
+                // YENİ EKLENEN SATIR:
+                this.portfoyler = (primData.portfoyler ?? []).map((p) => ({
+                    ...p,
+                    aktif: Boolean(p.aktif),
                 }));
 
                 this.auditKayitlari = primData.audit_kayitlari ?? [];
@@ -1209,6 +1317,57 @@ function yetkiYonetimiModal() {
             });
 
             this.yeniAsamaModalAcik = false;
+        },
+
+        yeniPortfoyModalAc() {
+            this.yeniPortfoyForm = { muvekkil_id: '', ad: '', kod: '' };
+            this.yeniPortfoyModalAcik = true;
+        },
+
+        async yeniPortfoyKaydet() {
+            this.kaydediliyor = true;
+            try {
+                const res = await fetch('/tahsilat/yetki/prim-ayarlar/portfoy-ekle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(this.yeniPortfoyForm),
+                });
+                if (!res.ok) throw new Error(await this.hataMesaji(res));
+                
+                alert('Portföy başarıyla eklendi!');
+                this.yeniPortfoyModalAcik = false;
+                await this.yukle(); // Listeyi yeniler
+            } catch (error) {
+                alert(error.message || 'Hata oluştu.');
+            } finally {
+                this.kaydediliyor = false;
+            }
+        },
+
+        async portfoyGuncelle(p) {
+            this.kaydediliyor = true;
+            try {
+                const res = await fetch('/tahsilat/yetki/prim-ayarlar/portfoy/' + p.id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ ad: p.ad, kod: p.kod, aktif: p.aktif }),
+                });
+                if (!res.ok) throw new Error(await this.hataMesaji(res));
+                
+                alert('Portföy güncellendi!');
+            } catch (error) {
+                alert(error.message || 'Hata oluştu.');
+            } finally {
+                this.kaydediliyor = false;
+            }
         },
     };
 }
