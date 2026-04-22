@@ -24,6 +24,9 @@ class TahsilatYetkiliKullanici extends Model
             'tahsilat_takip_sorumlusu' => 'boolean',
             'aktif' => 'boolean',
             'tab_permissions' => 'array',
+            
+            // YENİ EKLENEN SATIR: Veritabanındaki JSON verisini diziye (array) dönüştürür
+            'sorumlu_muvekkiller' => 'array',
         ];
     }
 

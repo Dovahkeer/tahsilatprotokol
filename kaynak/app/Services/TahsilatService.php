@@ -8,6 +8,7 @@ use App\Models\Protokol;
 use App\Models\ProtokolTaksit;
 use App\Models\Tahsilat;
 use App\Models\TahsilatDekontu;
+use App\Models\TahsilatYetkiliKullanici;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -28,6 +29,7 @@ class TahsilatService
     public function paginate(array $filters): LengthAwarePaginator
     {
         $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
+        $user = auth()->user();
 
         $query = Tahsilat::query()
             ->with([
@@ -35,6 +37,22 @@ class TahsilatService
                 'protokol.portfoy',
                 'dekontlar',
             ])
+            // ==========================================
+            // GÜVENLİK DUVARI: SORUMLU MÜVEKKİLLER FİLTRESİ
+            // ==========================================
+            ->when($user && !$user->isAdmin(), function (Builder $query) use ($user) {
+                $yetki = TahsilatYetkiliKullanici::where('user_id', $user->id)->first();
+                $sorumluMuvekkiller = $yetki->sorumlu_muvekkiller ?? [];
+
+                if (empty($sorumluMuvekkiller)) {
+                    // Kullanıcının hiçbir müvekkil yetkisi yoksa GÜVENLİK GEREĞİ BÜTÜN VERİLERİ GİZLE
+                    $query->whereRaw('1 = 0');
+                } else {
+                    // Sadece sorumlu olduğu müvekkillerin verilerini getir
+                    $query->whereIn('muvekkil_id', $sorumluMuvekkiller);
+                }
+            })
+            // ==========================================
             ->when(! empty($filters['q']), function (Builder $query) use ($filters) {
                 $needle = trim((string) $filters['q']);
 
@@ -92,7 +110,7 @@ class TahsilatService
                 'tahsilat_tarihi' => $data['tahsilat_tarihi'],
                 'tutar' => $tutar,
                 'tahsilat_yontemi' => $data['tahsilat_yontemi'],
-                'pos_cihazi' => $data['pos_cihazi'] ?? null, // YENİ EKLENEN SATIR
+                'pos_cihazi' => $data['pos_cihazi'] ?? null, // KORUNDU
                 'tahsilat_birimleri' => array_values($data['tahsilat_birimleri']),
                 'notlar' => $data['notlar'] ?? null,
                 'onay_durumu' => TahsilatOnayDurumu::Beklemede->value,
@@ -135,7 +153,7 @@ class TahsilatService
                 'tahsilat_tarihi' => $data['tahsilat_tarihi'],
                 'tutar' => $tutar,
                 'tahsilat_yontemi' => $data['tahsilat_yontemi'],
-                'pos_cihazi' => $data['pos_cihazi'] ?? null, // YENİ EKLENEN SATIR
+                'pos_cihazi' => $data['pos_cihazi'] ?? null, // KORUNDU
                 'tahsilat_birimleri' => array_values($data['tahsilat_birimleri']),
                 'notlar' => $data['notlar'] ?? null,
                 'updated_by' => $user->id,
@@ -293,7 +311,7 @@ class TahsilatService
             'tahsilat_tarihi' => optional($tahsilat->tahsilat_tarihi)->toDateString(),
             'tutar' => Money::float($tahsilat->tutar),
             'tahsilat_yontemi' => $tahsilat->tahsilat_yontemi,
-            'pos_cihazi' => $tahsilat->pos_cihazi, // YENİ EKLENEN SATIR
+            'pos_cihazi' => $tahsilat->pos_cihazi,
             'tahsilat_birimleri' => $tahsilat->tahsilat_birimleri ?? [],
             'notlar' => $tahsilat->notlar,
             'onay_durumu' => $tahsilat->onay_durumu,
@@ -362,7 +380,6 @@ class TahsilatService
 
     private function assertCollectable(Protokol $protokol, OdemeKalemiTipi $tip, string $tutar, ?ProtokolTaksit $taksit = null): void
     {
-        // Kilit (Lock) mekanizmasını eşzamanlı ödeme çakışmalarını önlemek için koruyoruz
         DB::table('protokoller')->where('id', $protokol->id)->lockForUpdate()->get();
 
         $kalan = match ($tip) {
@@ -371,9 +388,7 @@ class TahsilatService
             default => $tutar,
         };
 
-        // 2. YOL (YAZILIMSAL ESNEKLİK): Karşı vekalet ücreti gibi fazla ödemeleri alabilmek için
-        // limit aşımını engelleyen ve hata fırlatan kuralı devre dışı bıraktık.
-        
+        // KORUNDU: Fazla ödeme alabilmek için limit aşım kuralı devre dışı bırakıldı.
         /* if (Money::cmp($tutar, $kalan) === 1) {
             throw ValidationException::withMessages([
                 'tutar' => 'Girilen tutar kalan tahsil edilebilir tutarı aşıyor.',

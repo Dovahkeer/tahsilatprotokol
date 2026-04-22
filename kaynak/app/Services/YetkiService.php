@@ -11,12 +11,17 @@ use App\Models\PrimKademeAsamasi;
 use App\Models\PrimKademePayOrani;
 use App\Models\TahsilatYetkiliKullanici;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use App\Models\Portfoy;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class YetkiService
 {
+    /**
+     * Tüm kullanıcıları ve yetkilerini arayüze gönderir
+     */
     public function users(): array
     {
         $tabKeys = collect(config('tahsilat.tab_tanimlari', []))
@@ -35,7 +40,11 @@ class YetkiService
                     'ad' => $user->name,
                     'email' => $user->email,
                     'yonetici' => $user->isAdmin(),
-                    'aktif' => (bool) $user->aktif, // <-- BU SATIRI EKLE
+                    'aktif' => (bool) $user->aktif,
+                    
+                    // Sorumlu Müvekkiller (Veri Filtreleme Güvenlik Duvarı)
+                    'sorumlu_muvekkiller' => $yetki->sorumlu_muvekkiller ?? [], 
+                    
                     'tahsilat_olusturabilir' => (bool) $yetki->tahsilat_olusturabilir || $user->isAdmin(),
                     'protokol_olusturabilir' => (bool) $yetki->protokol_olusturabilir || $user->isAdmin(),
                     'protokol_duzenleyebilir' => (bool) $yetki->protokol_duzenleyebilir || $user->isAdmin(),
@@ -53,6 +62,9 @@ class YetkiService
         ];
     }
 
+    /**
+     * Prim, Kademe, Portföy ve Audit ayarlarını arayüze gönderir
+     */
     public function primAyarlar(): array
     {
         $muvekkilRows = Muvekkil::query()
@@ -83,7 +95,7 @@ class YetkiService
             'kademe_prim_asamalari' => PrimKademeAsamasi::query()->orderBy('kademe')->orderBy('asama_no')->get()->toArray(),
             'muvekkil_oranlari' => $muvekkilRows,
 
-            // YENİ HALİ: Önce müvekkil adına, sonra portföy adına göre alfabetik sıralar
+            // Portföyleri Müvekkil Adına Göre Alfabetik Sırala
             'portfoyler' => Portfoy::query()->with('muvekkil')->get()->map(fn ($p) => [
                 'id' => (string) $p->id,
                 'muvekkil_id' => (string) $p->muvekkil_id,
@@ -113,6 +125,13 @@ class YetkiService
         ];
     }
 
+    // ==========================================
+    // KULLANICI, YETKİ & ŞİFRE İŞLEMLERİ
+    // ==========================================
+
+    /**
+     * Kullanıcıların yetkilerini ve sorumlu müvekkillerini veritabanına kaydeder
+     */
     public function updateUserPermissions(User $user, array $payload): TahsilatYetkiliKullanici
     {
         // 1. User tablosundaki aktif durumunu güncelle
@@ -123,11 +142,15 @@ class YetkiService
         return TahsilatYetkiliKullanici::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'tahsilat_olusturabilir' => (bool) $payload['tahsilat_olusturabilir'],
-                'protokol_olusturabilir' => (bool) $payload['protokol_olusturabilir'],
-                'protokol_duzenleyebilir' => (bool) $payload['protokol_duzenleyebilir'],
-                'toplu_protokol_ekleyebilir' => (bool) $payload['toplu_protokol_ekleyebilir'],
-                'tahsilat_takip_sorumlusu' => (bool) $payload['tahsilat_takip_sorumlusu'],
+                'tahsilat_olusturabilir' => (bool) ($payload['tahsilat_olusturabilir'] ?? false),
+                'protokol_olusturabilir' => (bool) ($payload['protokol_olusturabilir'] ?? false),
+                'protokol_duzenleyebilir' => (bool) ($payload['protokol_duzenleyebilir'] ?? false),
+                'toplu_protokol_ekleyebilir' => (bool) ($payload['toplu_protokol_ekleyebilir'] ?? false),
+                'tahsilat_takip_sorumlusu' => (bool) ($payload['tahsilat_takip_sorumlusu'] ?? false),
+                
+                // YENİ EKLENEN KISIM: Sorumlu müvekkiller dizisi (Güvenlik filtrelemesi)
+                'sorumlu_muvekkiller' => $payload['sorumlu_muvekkiller'] ?? [],
+                
                 'aktif' => (bool) ($payload['aktif'] ?? true),
                 'tab_permissions' => $this->normalizeTabPermissions(
                     $payload['tab_permissions'] ?? [],
@@ -147,6 +170,32 @@ class YetkiService
             ->mapWithKeys(fn (string $key) => [$key => $allowAll ? true : (bool) ($payload[$key] ?? false)])
             ->all();
     }
+
+    public function createKullanici(array $data, User $actor): void
+    {
+        $user = User::query()->create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']), // Şifreyi güvenli kriptola
+            'is_admin' => $data['is_admin'] ?? false,
+            'aktif' => true,
+        ]);
+
+        $this->audit('sistem_kullanicisi', 'create', ['user_id' => $user->id], null, ['email' => $user->email], $actor);
+    }
+
+    public function updateSifre(User $user, string $newPassword, User $actor): void
+    {
+        $user->update([
+            'password' => Hash::make($newPassword),
+        ]);
+
+        $this->audit('kullanici_sifresi', 'update', ['user_id' => $user->id], null, null, $actor);
+    }
+
+    // ==========================================
+    // KADEME, PRİM & HACİZCİ İŞLEMLERİ
+    // ==========================================
 
     public function updateKademePay(array $rows, User $actor): void
     {
@@ -169,7 +218,6 @@ class YetkiService
                 
                 $model->fill($row);
 
-                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
                 if ($model->isDirty() || $isNew) {
                     $model->save();
 
@@ -196,7 +244,6 @@ class YetkiService
                 
                 $model->fill($row);
 
-                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
                 if ($model->isDirty() || $isNew) {
                     $model->save();
 
@@ -215,15 +262,13 @@ class YetkiService
             foreach ($rows as $row) {
                 $hacizci = Hacizci::query()->findOrFail($row['hacizci_id']);
                 
-                // Aktiflik durumunu da loga dahil ediyoruz
                 $old = $hacizci->only(['kademe', 'aktif']);
 
                 $hacizci->fill([
                     'kademe' => $row['kademe'],
-                    'aktif' => $row['aktif'] ?? true, // Arayüzden gelen toggle
+                    'aktif' => $row['aktif'] ?? true, 
                 ]);
 
-                // SADECE DEĞİŞİKLİK VARSA KAYDET VE LOGLA
                 if ($hacizci->isDirty()) {
                     $hacizci->save();
 
@@ -237,7 +282,6 @@ class YetkiService
 
     public function createHacizci(array $data, User $actor): void
     {
-        // 1. Yeni hacizciyi oluştur (varsayılan olarak aktif: true yapıyoruz)
         $hacizci = Hacizci::query()->create([
             'ad_soyad' => $data['ad_soyad'],
             'sicil_no' => $data['sicil_no'] ?? null,
@@ -245,10 +289,57 @@ class YetkiService
             'aktif' => true, 
         ]);
 
-        // 2. Sistemin tarihçesi (Audit) için bunu logla
         $this->audit('hacizci_kademe', 'create', [
             'hacizci_id' => $hacizci->id,
         ], null, $hacizci->only(['kademe', 'aktif']), $actor);
+    }
+
+    public function createKademe(array $data, User $actor): void
+    {
+        DB::transaction(function () use ($data, $actor) {
+            $yeniKademeKey = 'kademe_' . $data['kademe_no'];
+            
+            if (PrimKademe::query()->where('kademe', $yeniKademeKey)->exists()) {
+                throw ValidationException::withMessages(['kademe' => 'Bu kademe numarası zaten mevcut!']);
+            }
+
+            $kademeModel = PrimKademe::query()->create([
+                'kademe' => $yeniKademeKey,
+                'kademe_adi' => 'Kademe ' . $data['kademe_no'],
+                'varsayilan_prim_orani' => $data['varsayilan_prim_orani'] ?? 0,
+                'aktif' => true,
+            ]);
+
+            $mevcutKademeler = PrimKademe::query()->where('id', '!=', $kademeModel->id)->get();
+            foreach ($mevcutKademeler as $mevcut) {
+                $mevcutNo = (int) str_replace('kademe_', '', $mevcut->kademe);
+                $yeniNo = (int) $data['kademe_no'];
+
+                $ust = $mevcutNo < $yeniNo ? $mevcut->kademe : $yeniKademeKey;
+                $alt = $mevcutNo < $yeniNo ? $yeniKademeKey : $mevcut->kademe;
+
+                PrimKademePayOrani::query()->firstOrCreate([
+                    'ust_kademe' => $ust,
+                    'alt_kademe' => $alt,
+                ], [
+                    'ust_kademe_orani' => 50,
+                    'alt_kademe_orani' => 50,
+                    'aktif' => true,
+                ]);
+            }
+
+            for ($i = 1; $i <= 3; $i++) {
+                PrimKademeAsamasi::query()->create([
+                    'kademe' => $yeniKademeKey,
+                    'asama_no' => $i,
+                    'esik_tutari' => 0,
+                    'prim_orani' => 0,
+                    'aktif' => true,
+                ]);
+            }
+
+            $this->audit('prim_kademeler', 'create', ['kademe' => $yeniKademeKey], null, $kademeModel->toArray(), $actor);
+        });
     }
 
     public function updateMuvekkilOranlari(array $rows, User $actor): void
@@ -264,7 +355,6 @@ class YetkiService
                 
                 $model->fill($row);
 
-                // SADECE DEĞİŞİKLİK VARSA VEYA YENİ KAYITSA KAYDET VE LOGLA
                 if ($model->isDirty() || $isNew) {
                     $model->save();
 
@@ -276,71 +366,9 @@ class YetkiService
         });
     }
 
-    private function audit(string $alan, string $islem, array $anahtar, mixed $eski, mixed $yeni, User $actor): void
-    {
-        PrimAuditLogu::query()->create([
-            'alan_tipi' => $alan,
-            'islem_tipi' => $islem,
-            'hedef_anahtar' => $anahtar,
-            'eski_deger' => $eski,
-            'yeni_deger' => $yeni,
-            'changed_by' => $actor->id,
-        ]);
-    }
-
-    public function createKademe(array $data, User $actor): void
-    {
-        DB::transaction(function () use ($data, $actor) {
-            // 1. Yeni Kademeyi Ekle (Örn: kademe_4)
-            $yeniKademeKey = 'kademe_' . $data['kademe_no'];
-            
-            // Eğer bu kademe zaten varsa işlemi durdur
-            if (PrimKademe::query()->where('kademe', $yeniKademeKey)->exists()) {
-                throw ValidationException::withMessages(['kademe' => 'Bu kademe numarası zaten mevcut!']);
-            }
-
-            $kademeModel = PrimKademe::query()->create([
-                'kademe' => $yeniKademeKey,
-                'kademe_adi' => 'Kademe ' . $data['kademe_no'],
-                'varsayilan_prim_orani' => $data['varsayilan_prim_orani'] ?? 0,
-                'aktif' => true,
-            ]);
-
-            // 2. MATRİSİ OTOMATİK DOLDUR (%50 - %50)
-            $mevcutKademeler = PrimKademe::query()->where('id', '!=', $kademeModel->id)->get();
-            foreach ($mevcutKademeler as $mevcut) {
-                $mevcutNo = (int) str_replace('kademe_', '', $mevcut->kademe);
-                $yeniNo = (int) $data['kademe_no'];
-
-                // Küçük numara üst kademedir kuralı (Örn: Kademe 1 üst, Kademe 4 alttır)
-                $ust = $mevcutNo < $yeniNo ? $mevcut->kademe : $yeniKademeKey;
-                $alt = $mevcutNo < $yeniNo ? $yeniKademeKey : $mevcut->kademe;
-
-                PrimKademePayOrani::query()->firstOrCreate([
-                    'ust_kademe' => $ust,
-                    'alt_kademe' => $alt,
-                ], [
-                    'ust_kademe_orani' => 50,
-                    'alt_kademe_orani' => 50,
-                    'aktif' => true,
-                ]);
-            }
-
-            // 3. ZORUNLU 3 AŞAMAYI OTOMATİK OLUŞTUR (0 TL ile)
-            for ($i = 1; $i <= 3; $i++) {
-                PrimKademeAsamasi::query()->create([
-                    'kademe' => $yeniKademeKey,
-                    'asama_no' => $i,
-                    'esik_tutari' => 0,
-                    'prim_orani' => 0,
-                    'aktif' => true,
-                ]);
-            }
-
-            // Audit
-            $this->audit('prim_kademeler', 'create', ['kademe' => $yeniKademeKey], null, $kademeModel->toArray(), $actor);
-        });
-    }
+    // ==========================================
+    // PORTFÖY İŞLEMLERİ
+    // ==========================================
 
     public function createPortfoy(array $data, User $actor): void
     {
@@ -348,7 +376,7 @@ class YetkiService
             'muvekkil_id' => $data['muvekkil_id'],
             'ad' => $data['ad'],
             'kod' => $data['kod'] ?? null,
-            'normalized_ad' => \Illuminate\Support\Str::slug($data['ad'], ' '),
+            'normalized_ad' => Str::slug($data['ad'], ' '),
             'aktif' => true,
         ]);
     }
@@ -363,4 +391,19 @@ class YetkiService
         ]);
     }
 
+    // ==========================================
+    // GÜVENLİK VE AUDIT (LOG) İŞLEMLERİ
+    // ==========================================
+
+    private function audit(string $alan, string $islem, array $anahtar, mixed $eski, mixed $yeni, User $actor): void
+    {
+        PrimAuditLogu::query()->create([
+            'alan_tipi' => $alan,
+            'islem_tipi' => $islem,
+            'hedef_anahtar' => $anahtar,
+            'eski_deger' => $eski,
+            'yeni_deger' => $yeni,
+            'changed_by' => $actor->id,
+        ]);
+    }
 }

@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateTahsilatYetkiRequest;
 use App\Models\User;
 use App\Services\YetkiService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request; // Gerekli kütüphane eklendi
 
 class YetkiController extends Controller
 {
@@ -63,7 +64,7 @@ class YetkiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function hacizciEkle(\Illuminate\Http\Request $request): JsonResponse
+    public function hacizciEkle(Request $request): JsonResponse
     {
         // Gelen verinin düzgün olup olmadığını kontrol et
         $validated = $request->validate([
@@ -78,7 +79,7 @@ class YetkiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function kademeEkle(\Illuminate\Http\Request $request): JsonResponse
+    public function kademeEkle(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'kademe_no' => ['required', 'integer', 'min:1'],
@@ -90,7 +91,40 @@ class YetkiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function portfoyEkle(\Illuminate\Http\Request $request): JsonResponse
+    // ==========================================
+    // ŞİFRE VE KULLANICI İŞLEMLERİ (Eksikler Eklendi)
+    // ==========================================
+
+    public function kullaniciEkle(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:6'],
+            'is_admin' => ['boolean'],
+        ]);
+
+        $this->yetkiService->createKullanici($validated, $request->user());
+
+        return response()->json(['success' => true]);
+    }
+
+    public function sifreDegistir(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6'],
+        ]);
+
+        $this->yetkiService->updateSifre($user, $validated['password'], $request->user());
+
+        return response()->json(['success' => true]);
+    }
+
+    // ==========================================
+    // PORTFÖY İŞLEMLERİ (Korundu)
+    // ==========================================
+
+    public function portfoyEkle(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'muvekkil_id' => ['required', 'exists:muvekkiller,id'],
@@ -103,7 +137,7 @@ class YetkiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function portfoyGuncelle(\Illuminate\Http\Request $request, $id): JsonResponse
+    public function portfoyGuncelle(Request $request, $id): JsonResponse
     {
         $validated = $request->validate([
             'ad' => ['nullable', 'string', 'max:255'],
