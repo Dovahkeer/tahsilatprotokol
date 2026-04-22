@@ -113,8 +113,10 @@
                 <div class="sm:col-span-2">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Muhatap Adı <span class="text-red-500">*</span></label>
-                            <input type="text" x-model="form.muhatap_adi" maxlength="255" :required="!duzenlemeModu"
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Muhatap Telefonu <span class="text-red-500">*</span></label>
+                            <input type="tel" x-model="form.muhatap_telefon" 
+                                @input="form.muhatap_telefon = telefonFormatla($event.target.value)"
+                                maxlength="17" :required="!duzenlemeModu" placeholder="0 (5xx) xxx xx xx"
                                 class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm">
                         </div>
                         <div>
@@ -493,7 +495,7 @@ function protokolFormModal() {
                     borclu_tckn_vkn: protokol.borclu_tckn_vkn ?? '',
                     aktif: Boolean(protokol.aktif ?? true),
                     muhatap_adi: protokol.muhatap_adi ?? '',
-                    muhatap_telefon: protokol.muhatap_telefon ?? '',
+                    muhatap_telefon: this.telefonFormatla(protokol.muhatap_telefon ?? ''),
                     pesinat: this.formatAmountFromNumber(protokol.pesinat ?? ''),
                     toplam_protokol_tutari: this.formatAmountFromNumber(protokol.toplam_protokol_tutari ?? ''),
                     ana_para: this.formatAmountFromNumber(protokol.ana_para ?? ''),
@@ -723,9 +725,10 @@ function protokolFormModal() {
                 return;
             }
 
-            const hacizciIdler = this.form.hacizciler.map((h) => h.hacizci_id).filter(Boolean);
-            if ((new Set(hacizciIdler)).size !== hacizciIdler.length) {
-                this.hata = 'Aynı hacizci bir protokole birden fazla kez eklenemez.';
+            // Sadece kişi ve tür kombinasyonunun benzersiz olmasını sağlıyoruz
+            const kombinasyonlar = this.form.hacizciler.map((h) => h.hacizci_id + '_' + h.haciz_turu).filter(k => !k.startsWith('_') && !k.endsWith('_'));
+            if ((new Set(kombinasyonlar)).size !== kombinasyonlar.length) {
+                this.hata = 'Aynı hacizci aynı haciz türü (İstihkaklı, 97 vb.) ile birden fazla kez eklenemez. Farklı haciz türleri seçerek ekleyebilirsiniz.';
                 return;
             }
 
@@ -776,7 +779,7 @@ function protokolFormModal() {
                     borclu_adi: this.form.borclu_adi,
                     borclu_tckn_vkn: this.form.borclu_tckn_vkn || null,
                     muhatap_adi: this.form.muhatap_adi || null,
-                    muhatap_telefon: this.form.muhatap_telefon || null,
+                    muhatap_telefon: this.form.muhatap_telefon ? this.form.muhatap_telefon.replace(/\D/g, '') : null,
                     pesinat: normalizedPesinat,
                     toplam_protokol_tutari: normalizedToplamProtokolTutari,
                     ana_para: this.form.ana_para ? this.toBackendAmount(this.form.ana_para) : null,
@@ -887,6 +890,27 @@ function protokolFormModal() {
                 const oran = this.parseOran(h.pay_orani);
                 return toplam + (Number.isFinite(oran) ? oran : 0);
             }, 0);
+        },
+
+        telefonFormatla(deger) {
+            let input = String(deger || '').replace(/\D/g, ''); // Sadece rakamları al
+            if (input.length === 0) return '';
+            
+            // 0 ile başlamıyorsa başına 0 ekle
+            if (input[0] !== '0') input = '0' + input;
+            
+            // Maksimum 11 hane (05555555555)
+            if (input.length > 11) input = input.substring(0, 11);
+            
+            // Formatla: 0 (555) 555 55 55
+            let formatted = input;
+            if (input.length > 1) {
+                formatted = input.substring(0, 1) + ' (' + input.substring(1, 4);
+                if (input.length > 4) formatted += ') ' + input.substring(4, 7);
+                if (input.length > 7) formatted += ' ' + input.substring(7, 9);
+                if (input.length > 9) formatted += ' ' + input.substring(9, 11);
+            }
+            return formatted;
         },
 
         formatAmountInput(rawValue) {
