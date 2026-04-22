@@ -113,16 +113,16 @@
                 <div class="sm:col-span-2">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Muhatap Adı <span class="text-red-500">*</span></label>
+                            <input type="text" x-model="form.muhatap_adi" :required="!duzenlemeModu" placeholder="Ad Soyad veya Ünvan"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500">
+                        </div>
+                        <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Muhatap Telefonu <span class="text-red-500">*</span></label>
                             <input type="tel" x-model="form.muhatap_telefon" 
                                 @input="form.muhatap_telefon = telefonFormatla($event.target.value)"
                                 maxlength="17" :required="!duzenlemeModu" placeholder="0 (5xx) xxx xx xx"
-                                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Muhatap Telefonu <span class="text-red-500">*</span></label>
-                            <input type="text" x-model="form.muhatap_telefon" maxlength="30" :required="!duzenlemeModu" placeholder="05xx..."
-                                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm">
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500">
                         </div>
                     </div>
                 </div>
