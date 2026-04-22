@@ -53,27 +53,28 @@ class TahsilatService
                 }
             })
             // ==========================================
-            // AKILLI ARAMA: Büyük/Küçük harf duyarlılığını kaldırır
+            // AKILLI ARAMA: Türkçe "İ" ve "I" Veritabanı (Collation) Krizini Çözen Yapı
             // ==========================================
             ->when(! empty($filters['q']), function (Builder $query) use ($filters) {
-                $needle = trim((string) $filters['q']);
+                $q = trim((string) $filters['q']);
                 
-                // 1. PHP ve SQL arasındaki Türkçe "İ" ve "I" krizini önlemek için manuel değişim yapıyoruz
-                $needle = str_replace(
-                    ['İ', 'I', 'Ş', 'Ç', 'Ğ', 'Ü', 'Ö'], 
-                    ['i', 'ı', 'ş', 'ç', 'ğ', 'ü', 'ö'], 
-                    $needle
-                );
-                
-                // 2. Kalan karakterleri güvenle küçük harfe çeviriyoruz
-                $needle = mb_strtolower($needle, 'UTF-8');
-                $likeStr = '%' . $needle . '%';
+                // SQL'in LOWER() fonksiyonu Türkçe harfleri bozduğu için dönüşümü PHP'de yapıyoruz.
+                // Kelimenin Orijinal, KÜÇÜK, BÜYÜK ve İlk Harfi Büyük varyasyonlarını üretiyoruz.
+                $varyasyonlar = array_unique([
+                    '%' . $q . '%',
+                    '%' . mb_strtolower($q, 'UTF-8') . '%',
+                    '%' . mb_strtoupper($q, 'UTF-8') . '%',
+                    '%' . mb_convert_case(mb_strtolower($q, 'UTF-8'), MB_CASE_TITLE, 'UTF-8') . '%'
+                ]);
 
-                $query->where(function (Builder $sub) use ($likeStr) {
-                    $sub->whereRaw('LOWER(borclu_adi) LIKE ?', [$likeStr])
-                        ->orWhere('borclu_tckn_vkn', 'like', $likeStr)
-                        ->orWhereHas('muvekkil', fn (Builder $muvekkil) => $muvekkil->whereRaw('LOWER(ad) LIKE ?', [$likeStr]))
-                        ->orWhereHas('protokol', fn (Builder $protokol) => $protokol->whereRaw('LOWER(protokol_no) LIKE ?', [$likeStr]));
+                $query->where(function (Builder $sub) use ($varyasyonlar) {
+                    // Üretilen tüm ihtimalleri veritabanında dümdüz LIKE ile arıyoruz
+                    foreach ($varyasyonlar as $v) {
+                        $sub->orWhere('borclu_adi', 'like', $v)
+                            ->orWhere('borclu_tckn_vkn', 'like', $v)
+                            ->orWhereHas('muvekkil', fn (Builder $m) => $m->where('ad', 'like', $v))
+                            ->orWhereHas('protokol', fn (Builder $p) => $p->where('protokol_no', 'like', $v));
+                    }
                 });
             })
             
