@@ -53,23 +53,27 @@ class TahsilatService
                 }
             })
             // ==========================================
-            // AKILLI ARAMA: Türkçe "İ" ve "I" Veritabanı (Collation) Krizini Çözen Yapı
+            // AKILLI ARAMA: Veritabanı "İ" ve "I" Krizini Çözen %100 Uyumlu Yapı
             // ==========================================
             ->when(! empty($filters['q']), function (Builder $query) use ($filters) {
                 $q = trim((string) $filters['q']);
                 
-                // SQL'in LOWER() fonksiyonu Türkçe harfleri bozduğu için dönüşümü PHP'de yapıyoruz.
-                // Kelimenin Orijinal, KÜÇÜK, BÜYÜK ve İlk Harfi Büyük varyasyonlarını üretiyoruz.
+                // 1. PHP'de Türkçe "i/ı" harflerini kusursuz büyütebilmek için manuel müdahale
+                $upperQ = mb_strtoupper(str_replace(['i', 'ı'], ['İ', 'I'], $q), 'UTF-8');
+                $lowerQ = mb_strtolower(str_replace(['İ', 'I'], ['i', 'ı'], $q), 'UTF-8');
+                $titleQ = mb_convert_case($lowerQ, MB_CASE_TITLE, 'UTF-8');
+
+                // 2. Olası tüm Türkçe varyasyonları bir araya getir
                 $varyasyonlar = array_unique([
-                    '%' . $q . '%',
-                    '%' . mb_strtolower($q, 'UTF-8') . '%',
-                    '%' . mb_strtoupper($q, 'UTF-8') . '%',
-                    '%' . mb_convert_case(mb_strtolower($q, 'UTF-8'), MB_CASE_TITLE, 'UTF-8') . '%'
+                    '%' . $q . '%',           // Orijinal hali (örn: isMail)
+                    '%' . $upperQ . '%',      // Kusursuz Büyük (örn: İSMAİL)
+                    '%' . $lowerQ . '%',      // Kusursuz Küçük (örn: ismail)
+                    '%' . $titleQ . '%'       // İlk Harfi Büyük (örn: İsmail)
                 ]);
 
                 $query->where(function (Builder $sub) use ($varyasyonlar) {
-                    // Üretilen tüm ihtimalleri veritabanında dümdüz LIKE ile arıyoruz
                     foreach ($varyasyonlar as $v) {
+                        // 3. DİKKAT: LOWER() kullanmıyoruz! Direkt veritabanındaki orijinal veriyle eşleştiriyoruz.
                         $sub->orWhere('borclu_adi', 'like', $v)
                             ->orWhere('borclu_tckn_vkn', 'like', $v)
                             ->orWhereHas('muvekkil', fn (Builder $m) => $m->where('ad', 'like', $v))
