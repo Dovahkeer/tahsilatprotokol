@@ -53,14 +53,20 @@ class TahsilatService
                 }
             })
             // ==========================================
+            // ==========================================
+            // AKILLI ARAMA: Büyük/Küçük harf duyarlılığını kaldırır
+            // ==========================================
             ->when(! empty($filters['q']), function (Builder $query) use ($filters) {
-                $needle = trim((string) $filters['q']);
+                // 1. Gelen aramayı Türkçe karakter desteğiyle tamamen küçük harfe çeviriyoruz
+                $needle = mb_strtolower(trim((string) $filters['q']), 'UTF-8');
+                $likeStr = '%' . $needle . '%';
 
-                $query->where(function (Builder $sub) use ($needle) {
-                    $sub->where('borclu_adi', 'like', '%'.$needle.'%')
-                        ->orWhere('borclu_tckn_vkn', 'like', '%'.$needle.'%')
-                        ->orWhereHas('muvekkil', fn (Builder $muvekkil) => $muvekkil->where('ad', 'like', '%'.$needle.'%'))
-                        ->orWhereHas('protokol', fn (Builder $protokol) => $protokol->where('protokol_no', 'like', '%'.$needle.'%'));
+                $query->where(function (Builder $sub) use ($likeStr) {
+                    // 2. Veritabanındaki sütunları da LOWER() komutuyla küçük harfe çevirip eşleştiriyoruz
+                    $sub->whereRaw('LOWER(borclu_adi) LIKE ?', [$likeStr])
+                        ->orWhere('borclu_tckn_vkn', 'like', $likeStr)
+                        ->orWhereHas('muvekkil', fn (Builder $muvekkil) => $muvekkil->whereRaw('LOWER(ad) LIKE ?', [$likeStr]))
+                        ->orWhereHas('protokol', fn (Builder $protokol) => $protokol->whereRaw('LOWER(protokol_no) LIKE ?', [$likeStr]));
                 });
             })
             ->when(! empty($filters['onay_durumu']), fn (Builder $query) => $query->where('onay_durumu', $filters['onay_durumu']))
