@@ -53,22 +53,30 @@ class TahsilatService
                 }
             })
             // ==========================================
-            // ==========================================
             // AKILLI ARAMA: Büyük/Küçük harf duyarlılığını kaldırır
             // ==========================================
             ->when(! empty($filters['q']), function (Builder $query) use ($filters) {
-                // 1. Gelen aramayı Türkçe karakter desteğiyle tamamen küçük harfe çeviriyoruz
-                $needle = mb_strtolower(trim((string) $filters['q']), 'UTF-8');
+                $needle = trim((string) $filters['q']);
+                
+                // 1. PHP ve SQL arasındaki Türkçe "İ" ve "I" krizini önlemek için manuel değişim yapıyoruz
+                $needle = str_replace(
+                    ['İ', 'I', 'Ş', 'Ç', 'Ğ', 'Ü', 'Ö'], 
+                    ['i', 'ı', 'ş', 'ç', 'ğ', 'ü', 'ö'], 
+                    $needle
+                );
+                
+                // 2. Kalan karakterleri güvenle küçük harfe çeviriyoruz
+                $needle = mb_strtolower($needle, 'UTF-8');
                 $likeStr = '%' . $needle . '%';
 
                 $query->where(function (Builder $sub) use ($likeStr) {
-                    // 2. Veritabanındaki sütunları da LOWER() komutuyla küçük harfe çevirip eşleştiriyoruz
                     $sub->whereRaw('LOWER(borclu_adi) LIKE ?', [$likeStr])
                         ->orWhere('borclu_tckn_vkn', 'like', $likeStr)
                         ->orWhereHas('muvekkil', fn (Builder $muvekkil) => $muvekkil->whereRaw('LOWER(ad) LIKE ?', [$likeStr]))
                         ->orWhereHas('protokol', fn (Builder $protokol) => $protokol->whereRaw('LOWER(protokol_no) LIKE ?', [$likeStr]));
                 });
             })
+            
             ->when(! empty($filters['onay_durumu']), fn (Builder $query) => $query->where('onay_durumu', $filters['onay_durumu']))
             ->when(! empty($filters['bugun']), fn (Builder $query) => $query->whereDate('tahsilat_tarihi', now()->toDateString()))
             ->when(! empty($filters['tarih_baslangic']) && ! empty($filters['tarih_bitis']), fn (Builder $query) => $query
