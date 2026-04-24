@@ -133,8 +133,27 @@ class DashboardService
     {
         $rows = $this->buildExpectationRows($month);
 
+        // 1. Genel toplamları hesaplamak için başlangıç değerleri atıyoruz
+        $toplamGecmis = 0.0;
+        $toplamGelecek = 0.0;
+        $toplamSonYedi = 0.0;
+        $toplamBeklenti = 0.0;
+
+        // 2. Her bir müvekkilin verisini genel toplama ekliyoruz
+        foreach ($rows as $row) {
+            $toplamGecmis += $row['bu_ay_vadesi_gecmis_tutari'];
+            $toplamGelecek += $row['bu_ay_vadesi_gelecek_tutari'];
+            $toplamSonYedi += $row['son_7_gun_vadesi_gecmis_tutari'];
+            $toplamBeklenti += $row['toplam_beklenti_tutari'];
+        }
+
         return [
             'vade_ay' => $month->format('Y-m'),
+            // 3. Hesaplanan toplamları arayüze (kartlara) gönderiyoruz
+            'toplam_bu_ay_vadesi_gecmis_tutari' => $toplamGecmis,
+            'toplam_bu_ay_vadesi_gelecek_tutari' => $toplamGelecek,
+            'toplam_son_7_gun_vadesi_gecmis_tutari' => $toplamSonYedi,
+            'toplam_beklenti_tutari' => $toplamBeklenti,
             'satirlar' => $rows->map(fn (array $row) => [
                 'muvekkil_id' => $row['muvekkil_id'],
                 'muvekkil_ad' => $row['muvekkil_ad'],
