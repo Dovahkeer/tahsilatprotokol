@@ -14,8 +14,8 @@ class UploadProtokolPdfRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // 2048 KB olan sınırı 10240 KB (10 MB) olarak değiştirdik.
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            // Sınırı Ghostscript sıkıştırması için 15360 KB (15 MB) olarak güncelledik.
+            'pdf' => ['required', 'file', 'mimes:pdf', 'max:15360'],
         ];
     }
 }

@@ -29,7 +29,7 @@ class StoreProtokolRequest extends FormRequest
             'ana_para' => ['nullable', 'string'],
             'kapak_hesabi' => ['nullable', 'string'],
             'hacizciler' => ['required', 'array', 'min:1'],
-            'hacizciler.*.hacizci_id' => ['required', 'distinct', 'exists:hacizciler,id'],
+            'hacizciler.*.hacizci_id' => ['required', 'exists:hacizciler,id'],
             'hacizciler.*.haciz_turu' => ['required', Rule::in(array_keys(config('tahsilat.haciz_turleri', [])))],
             'hacizciler.*.pay_orani' => ['nullable', 'numeric', 'between:0,100'],
             'taksitler' => ['nullable', 'array'],

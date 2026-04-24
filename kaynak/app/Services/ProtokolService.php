@@ -200,7 +200,19 @@ class ProtokolService
 
             // İşletim sistemini algıla
             $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-            $gsBinary = $isWindows ? 'gswin64c' : 'gs';
+            $gsBinary = 'gs'; // Linux/Mac için varsayılan
+            
+            if ($isWindows) {
+                // Windows'ta Program Files içindeki "gs" klasörünü otomatik tara
+                $olasiYollar = glob('C:\Program Files\gs\*\bin\gswin64c.exe');
+                
+                if (!empty($olasiYollar)) {
+                    rsort($olasiYollar); // Birden fazla Ghostscript sürümü varsa en yenisini al
+                    $gsBinary = '"' . $olasiYollar[0] . '"'; // Örn: "C:\Program Files\gs\gs10.07.0\bin\gswin64c.exe"
+                } else {
+                    $gsBinary = 'gswin64c'; // Klasörü bulamazsa Windows Path ayarlarına güven
+                }
+            }
 
             $gsCommand = sprintf(
                 "%s -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=%s %s",

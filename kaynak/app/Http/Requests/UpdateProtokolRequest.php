@@ -35,7 +35,7 @@ class UpdateProtokolRequest extends FormRequest
             'kapak_hesabi' => ['nullable', 'numeric', 'min:0'],
             'aktif' => ['sometimes', 'boolean'],
             'hacizciler' => ['required', 'array', 'min:1'],
-            'hacizciler.*.hacizci_id' => ['required', 'distinct', 'exists:hacizciler,id'],
+            'hacizciler.*.hacizci_id' => ['required', 'exists:hacizciler,id'],
             'hacizciler.*.haciz_turu' => ['required', Rule::in(array_keys(config('tahsilat.haciz_turleri', [])))],
             'hacizciler.*.pay_orani' => ['nullable', 'numeric', 'between:0,100'],
         ];
