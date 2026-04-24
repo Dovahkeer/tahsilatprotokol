@@ -190,7 +190,41 @@ class ProtokolService
 
     public function uploadPdf(Protokol $protokol, UploadedFile $file): Protokol
     {
-        $path = $file->store('protokoller', 'public');
+        $path = '';
+        $mimeType = $file->getMimeType() ?: 'application/octet-stream';
+
+        // Eğer dosya PDF ise Ghostscript sıkıştırmasını çalıştır
+        if ($mimeType === 'application/pdf') {
+            $originalPath = $file->getRealPath();
+            $compressedPath = $originalPath . '_compressed.pdf';
+
+            // İşletim sistemini algıla
+            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+            $gsBinary = $isWindows ? 'gswin64c' : 'gs';
+
+            $gsCommand = sprintf(
+                "%s -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=%s %s",
+                $gsBinary,
+                escapeshellarg($compressedPath),
+                escapeshellarg($originalPath)
+            );
+            
+            exec($gsCommand, $output, $returnCode);
+
+            if ($returnCode === 0 && file_exists($compressedPath)) {
+                $path = \Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
+                    'protokoller', 
+                    new \Illuminate\Http\File($compressedPath), 
+                    $file->hashName()
+                );
+                unlink($compressedPath); // İşimiz bitince geçici dosyayı temizle
+            } else {
+                $path = $file->store('protokoller', 'public');
+            }
+        } else {
+            $path = $file->store('protokoller', 'public');
+        }
+
         $protokol->update(['protokol_pdf_dosya_yolu' => $path]);
 
         return $protokol->fresh();

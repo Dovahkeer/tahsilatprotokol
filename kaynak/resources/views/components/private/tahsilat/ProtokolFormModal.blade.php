@@ -573,8 +573,8 @@ function protokolFormModal() {
             const file = event.target.files[0];
             if (file) {
                 // 10 MB Kontrolü (10 * 1024 * 1024 bytes)
-                if (file.size > 10485760) {
-                    alert('HATA: Seçtiğiniz dosya çok büyük (' + (file.size / 1024 / 1024).toFixed(2) + ' MB).\n\nLütfen en fazla 10 MB boyutunda bir PDF yükleyin.');
+                if (file.size > 15728640) {
+                    alert('HATA: Seçtiğiniz dosya çok büyük (' + (file.size / 1024 / 1024).toFixed(2) + ' MB).\n\nLütfen en fazla 15 MB boyutunda bir PDF yükleyin.');
                     this.form.pdf_dosya = null;
                     event.target.value = '';
                     return;

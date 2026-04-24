@@ -442,14 +442,49 @@ class TahsilatService
 
     private function storeDekont(Tahsilat $tahsilat, UploadedFile $dekont, User $user): TahsilatDekontu
     {
-        $path = $dekont->store('tahsilat-dekontlari', 'public');
+        $path = '';
+        $mimeType = $dekont->getMimeType() ?: 'application/octet-stream';
+        $finalSize = $dekont->getSize();
+
+        // Eğer dosya PDF ise Ghostscript sıkıştırmasını çalıştır
+        if ($mimeType === 'application/pdf') {
+            $originalPath = $dekont->getRealPath();
+            $compressedPath = $originalPath . '_compressed.pdf';
+
+            // İşletim sistemini algıla (Windows için gswin64c, diğerleri için gs)
+            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+            $gsBinary = $isWindows ? 'gswin64c' : 'gs';
+
+            $gsCommand = sprintf(
+                "%s -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=%s %s",
+                $gsBinary,
+                escapeshellarg($compressedPath),
+                escapeshellarg($originalPath)
+            );
+            
+            exec($gsCommand, $output, $returnCode);
+
+            if ($returnCode === 0 && file_exists($compressedPath)) {
+                $path = \Illuminate\Support\Facades\Storage::disk('public')->putFileAs(
+                    'tahsilat-dekontlari', 
+                    new \Illuminate\Http\File($compressedPath), 
+                    $dekont->hashName()
+                );
+                $finalSize = filesize($compressedPath); 
+                unlink($compressedPath); 
+            } else {
+                $path = $dekont->store('tahsilat-dekontlari', 'public');
+            }
+        } else {
+            $path = $dekont->store('tahsilat-dekontlari', 'public');
+        }
 
         return $tahsilat->dekontlar()->create([
             'disk' => 'public',
             'path' => $path,
             'original_name' => $dekont->getClientOriginalName(),
-            'mime_type' => $dekont->getMimeType() ?: 'application/octet-stream',
-            'size' => $dekont->getSize(),
+            'mime_type' => $mimeType,
+            'size' => $finalSize,
             'uploaded_by' => $user->id,
         ]);
     }
