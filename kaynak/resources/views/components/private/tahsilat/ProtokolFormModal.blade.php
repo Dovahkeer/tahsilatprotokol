@@ -308,9 +308,17 @@
                     İptal
                 </button>
                 <button type="submit" :disabled="kaydediliyor || form.hacizciler.length === 0"
-                    class="px-5 py-2 text-sm bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">
+                    class="px-5 py-2 text-sm bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                    
+                    {{-- Normal Durum --}}
                     <span x-show="!kaydediliyor" x-text="duzenlemeModu ? 'Değişiklikleri Kaydet' : 'Protokol Oluştur'"></span>
-                    <span x-show="kaydediliyor" x-text="duzenlemeModu ? 'Kaydediliyor...' : 'Oluşturuluyor...'"></span>
+                    
+                    {{-- Yükleniyor Durumu (Spin İkonu + Açıklayıcı Yazı) --}}
+                    <svg x-show="kaydediliyor" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span x-show="kaydediliyor">İşleniyor & Sıkıştırılıyor (Lütfen Bekleyin)...</span>
                 </button>
             </div>
 
